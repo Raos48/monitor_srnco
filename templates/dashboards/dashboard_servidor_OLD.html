@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Minhas Tarefas{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1 class="page-title">Minhas Tarefas</h1>
+    <p class="page-subtitle">
+        <i class="bi bi-person-badge"></i> {{ user.nome_completo }} (SIAPE: {{ user.siape }})
+    </p>
+</div>
+
+{% if kpis.bloqueado %}
+<div class="alert alert-danger mb-4">
+    <h5><i class="bi bi-exclamation-triangle-fill"></i> Você está bloqueado!</h5>
+    <p class="mb-0">
+        Seu acesso foi temporariamente bloqueado. Entre em contato com a coordenação para mais informações.
+        <br><strong>Motivo:</strong> {{ user.motivo_bloqueio|default:"Não especificado" }}
+    </p>
+</div>
+{% endif %}
+
+<!-- ← NOVOS: KPIs adicionados -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-value">{{ kpis.total }}</div>
+            <div class="kpi-label">Total de Tarefas</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color: #ffc107;">{{ kpis.pendentes }}</div>
+            <div class="kpi-label">Pendentes</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color: #28a745;">{{ kpis.cumprimento }}</div>
+            <div class="kpi-label">Em Cumprimento</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="kpi-card">
+            <div class="kpi-value">{{ kpis.media_pendencia|floatformat:0 }}</div>
+            <div class="kpi-label">Média Pendência (dias)</div>
+        </div>
+    </div>
+    <!-- ← NOVO KPI: Prazos Vencidos -->
+    <div class="col-md-2">
+        <div class="kpi-card" style="border-left: 4px solid #dc3545;">
+            <div class="kpi-value" style="color: #dc3545;">{{ kpis.total_prazo_vencido|default:0 }}</div>
+            <div class="kpi-label">Prazos Vencidos</div>
+        </div>
+    </div>
+    <!-- ← NOVO KPI: Tarefas Reabertas -->
+    <div class="col-md-2">
+        <div class="kpi-card" style="border-left: 4px solid #9c27b0;">
+            <div class="kpi-value" style="color: #9c27b0;">{{ kpis.total_reabertas|default:0 }}</div>
+            <div class="kpi-label">Reabertas</div>
+        </div>
+    </div>
+</div>
+
+{% if ultima_carga %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-clock-history"></i>
+    <strong>Última atualização dos dados:</strong>
+    {{ ultima_carga|date:"d/m/Y" }}
+</div>
+{% endif %}
+
+<div class="card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Lista de Tarefas ({{ tarefas.count }})</h2>
+    </div>
+    <div class="card-body-custom">
+        <div class="table-responsive">
+            <table class="table table-custom">
+                <thead>
+                    <tr>
+                        <th>Protocolo</th>
+                        <th>Serviço</th>
+                        <th>Status</th>
+                        <th>Prazo</th> <!-- ← NOVA COLUNA -->
+                        <th class="text-center">Reaberta</th> <!-- ← NOVA COLUNA -->
+                        <th>Distribuição</th>
+                        <th>Última Atualização</th>
+                        <th class="text-center">Dias Pendência</th>
+                        <th class="text-center">Dias Exigência</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarefa in tarefas %}
+                    <tr>
+                        <td><strong>{{ tarefa.numero_protocolo_tarefa }}</strong></td>
+                        <td>{{ tarefa.nome_servico|truncatewords:3 }}</td>
+                        <td>
+                            {% if tarefa.status_tarefa == 'Pendente' %}
+                                <span class="badge-custom badge-warning">{{ tarefa.status_tarefa }}</span>
+                            {% elif tarefa.status_tarefa == 'Cumprimento de exigência' %}
+                                <span class="badge-custom badge-info">Cumprimento</span>
+                            {% else %}
+                                <span class="badge-custom badge-success">{{ tarefa.status_tarefa }}</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- ← NOVA COLUNA: Prazo com badges coloridos -->
+                        <td>
+                            {% if tarefa.data_prazo %}
+                                {% if tarefa.prazo_vencido %}
+                                    <span class="badge-custom badge-danger" title="Prazo vencido">
+                                        🔴 {{ tarefa.data_prazo|date:"d/m/Y" }}
+                                    </span>
+                                {% elif tarefa.dias_ate_prazo <= 7 %}
+                                    <span class="badge-custom badge-warning" title="{{ tarefa.dias_ate_prazo }} dias restantes">
+                                        ⚠️ {{ tarefa.data_prazo|date:"d/m/Y" }}
+                                    </span>
+                                {% elif tarefa.dias_ate_prazo <= 15 %}
+                                    <span class="badge-custom" style="background-color: #ffc107; color: black;" title="{{ tarefa.dias_ate_prazo }} dias restantes">
+                                        ⏰ {{ tarefa.data_prazo|date:"d/m/Y" }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: #28a745; font-weight: bold;" title="{{ tarefa.dias_ate_prazo }} dias restantes">
+                                        ✓ {{ tarefa.data_prazo|date:"d/m/Y" }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- ← NOVA COLUNA: Indicador de Reaberta -->
+                        <td class="text-center">
+                            {% if tarefa.foi_reaberta %}
+                                <span class="badge-custom" style="background-color: #9c27b0; color: white;" title="Tarefa foi reaberta">
+                                    🔄
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y"|default:"-" }}</td>
+                        <td>{{ tarefa.data_ultima_atualizacao|date:"d/m/Y"|default:"-" }}</td>
+                        <td class="text-center">
+                            {% if tarefa.tempo_em_pendencia_em_dias > 60 %}
+                                <span class="badge-custom badge-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                            {% elif tarefa.tempo_em_pendencia_em_dias > 30 %}
+                                <span class="badge-custom badge-warning">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                            {% else %}
+                                <strong>{{ tarefa.tempo_em_pendencia_em_dias }}</strong>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ tarefa.tempo_em_exigencia_em_dias }}</strong>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ tarefa.descricao_cumprimento_exigencia_tarefa|truncatewords:6 }}</small>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 48px;"></i>
+                            <p class="mt-2">Nenhuma tarefa atribuída no momento</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ← NOVA SEÇÃO: Legenda dos badges -->
+<div class="mt-3">
+    <small class="text-muted">
+        <strong>Legenda de Prazos:</strong>
+        <span class="badge-custom badge-danger ms-2">🔴 Vencido</span>
+        <span class="badge-custom badge-warning ms-2">⚠️ Urgente (≤7 dias)</span>
+        <span class="badge-custom ms-2" style="background-color: #ffc107; color: black;">⏰ Próximo (≤15 dias)</span>
+        <span class="ms-2" style="color: #28a745; font-weight: bold;">✓ OK (>15 dias)</span>
+        <span class="badge-custom ms-2" style="background-color: #9c27b0; color: white;">🔄 Reaberta</span>
+    </small>
+</div>
+{% endblock %}

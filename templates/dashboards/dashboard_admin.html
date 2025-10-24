@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h1 class="page-title">Dashboard (Admin)</h1>
+        <p class="page-subtitle">Bem-vindo, {{ user.email }}. Você está logado como Superusuário ou staff sem um grupo de dashboard (Servidor/Coordenador).</p>
+    </div>
+
+    <div class="row mb-4"> {# Usando o grid do Bootstrap para os KPIs #}
+        <div class="col-md-6 col-lg-4"> {# Colunas para telas médias e grandes #}
+            <div class="kpi-card">
+                <div class="kpi-value">{{ total_tarefas }}</div>
+                <div class="kpi-label">Total de Tarefas</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4"> {# Colunas para telas médias e grandes #}
+            <div class="kpi-card">
+                <div class="kpi-value">{{ total_usuarios }}</div>
+                <div class="kpi-label">Total de Usuários</div>
+            </div>
+        </div>
+        {# Se você tiver mais KPIs, pode adicionar mais col-md-X aqui #}
+    </div>
+
+    <div class="card-custom"> {# Usando a classe de card customizada do Projeto 2 #}
+        <div class="card-header-custom"> {# Cabeçalho do card customizado #}
+            <h2 class="card-title-custom">Acesso Rápido</h2> {# Título do card customizado #}
+        </div>
+        <div class="card-body-custom"> {# Corpo do card customizado #}
+            <p>Como administrador, você pode gerenciar usuários e grupos diretamente na interface de administração.</p>
+            <a href="{% url 'admin:index' %}" class="btn btn-custom btn-primary-custom"> {# Botão customizado #}
+                <i class="bi bi-box-arrow-up-right"></i> Acessar o Admin {# Ícone do Bootstrap Icons #}
+            </a>
+        </div>
+    </div>
+{% endblock %}

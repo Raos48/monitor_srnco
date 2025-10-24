@@ -1,0 +1,33 @@
+# Ambiente Virtual (IMPORTANTE)
+.venv/
+venv/
+env/
+
+# Arquivos de Segredos (MUITO IMPORTANTE)
+.env
+*.env
+
+# Banco de dados de desenvolvimento
+db.sqlite3
+*.sqlite3
+
+# Cache e arquivos compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Configurações de IDE (VS Code)
+.vscode/
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos estáticos coletados pelo 'collectstatic'
+# (Se você mudar o STATIC_ROOT, adicione-o aqui)
+staticfiles/
+
+# Arquivos de mídia (uploads de usuários)
+# (Se você mudar o MEDIA_ROOT, adicione-o aqui)
+media/

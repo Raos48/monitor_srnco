@@ -1,0 +1,165 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Monitor SRNCO</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f3f6fa;
+            --sidebar-bg: #2b3a4a;
+            --link-blue: #00baff;
+        }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, var(--sidebar-bg) 0%, var(--bg-main) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0; /* Garante que não há margem padrão do body */
+            padding: 0; /* Garante que não há padding padrão do body */
+        }
+        .login-container {
+            max-width: 420px;
+            width: 100%;
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+        .login-header {
+            background-color: var(--sidebar-bg);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .login-header i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: var(--link-blue);
+        }
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .login-header p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+        .login-body {
+            padding: 40px 30px;
+        }
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a4a4a;
+            margin-bottom: 8px;
+        }
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #e5e8ee;
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+        .form-control:focus {
+            border-color: var(--link-blue);
+            box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.1);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--link-blue);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            background-color: #0099cc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 186, 255, 0.3);
+        }
+        .alert {
+            font-size: 13px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="bi bi-bar-chart-fill"></i>
+                <h1>Monitor SRNCO</h1>
+                <p>Sistema de Monitoramento de Tarefas</p>
+            </div>
+            <div class="login-body">
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        Seu email ou senha estão incorretos. Tente novamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">
+                            <i class="bi bi-envelope"></i> E-mail
+                        </label>
+                        <input 
+                            type="email" 
+                            class="form-control" 
+                            id="id_username" 
+                            name="username"
+                            placeholder="seu.email@exemplo.com.br"
+                            required
+                            autofocus
+                            value="{{ form.username.value|default:'' }}" {# Mantém o valor se houver erro #}
+                        >
+                    </div>
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label">
+                            <i class="bi bi-lock"></i> Senha
+                        </label>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="id_password" 
+                            name="password"
+                            placeholder="••••••••"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-login">
+                        <i class="bi bi-box-arrow-in-right"></i> Entrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

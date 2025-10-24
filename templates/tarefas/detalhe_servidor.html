@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ servidor.nome_completo }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-user"></i>
+                {{ servidor.nome_completo }}
+            </h1>
+            <p class="text-muted mb-0">
+                SIAPE: {{ servidor.siape }} | GEX: {{ servidor.gex|default:"N/A" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:lista_servidores' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+
+    <!-- Cards de Regras -->
+     <h1>TESTE CARD REGRAS</h1>
+    <div class="row g-3 mb-4">
+        {% for regra, info in regras_resumo.items %}
+        <div class="col-md-6">
+            <div class="card-info-regra">
+                <h5>{{ regra }} - {{ info.nome }}</h5>
+                <div class="badge {{ info.badge_class }}">
+                    {{ info.count }} tarefas
+                </div>
+                <p>{{ info.descricao }}</p>
+                <small>Prazo: {{ info.prazo }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- KPIs -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2">
+            <div class="kpi-card">
+                <div class="kpi-value">{{ kpis.total }}</div>
+                <div class="kpi-label">Total</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #dc3545;">
+                <div class="kpi-value" style="color: #dc3545;">{{ kpis.criticas }}</div>
+                <div class="kpi-label">🔴 Críticas</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #fd7e14;">
+                <div class="kpi-value" style="color: #fd7e14;">{{ kpis.altas }}</div>
+                <div class="kpi-label">🟠 Altas</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
+                <div class="kpi-value" style="color: #f39c12;">{{ kpis.medias }}</div>
+                <div class="kpi-label">🟡 Médias</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #28a745;">
+                <div class="kpi-value" style="color: #28a745;">{{ kpis.baixas }}</div>
+                <div class="kpi-label">🟢 Baixas</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #6c757d;">
+                <div class="kpi-value">{{ kpis.normais }}</div>
+                <div class="kpi-label">⚪ Normais</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico + Tarefas Prioritárias -->
+    <div class="row g-3 mb-4">
+        <!-- Gráfico -->
+        <div class="col-lg-5">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Criticidade
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-criticidade" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 10 Prioritárias -->
+        <div class="col-lg-7">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-exclamation-triangle"></i> Top 10 Tarefas Prioritárias
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Criticidade</th>
+                                    <th>Protocolo</th>
+                                    <th>Serviço</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tarefa in tarefas_prioritarias %}
+                                <tr style="border-left: 4px solid {{ tarefa.cor_criticidade }};">
+                                    <td>{{ tarefa.badge_html_criticidade|safe }}</td>
+                                    <td><code style="font-size: 0.7rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                    </td>
+                                    <td><small>{{ tarefa.nome_servico|truncatewords:3 }}</small></td>
+                                    <td><small>{{ tarefa.status_tarefa }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        Nenhuma tarefa prioritária
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo por Serviço -->
+    {% if servicos_resumo %}
+    <div class="card-custom mb-4">
+        <div class="card-header-custom">
+            <h3 class="card-title-custom">
+                <i class="fas fa-chart-bar"></i> Resumo por Tipo de Serviço
+            </h3>
+        </div>
+        <div class="card-body-custom">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">🔴 Críticas</th>
+                            <th class="text-center">🟠 Altas</th>
+                            <th class="text-center">🟡 Médias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for servico in servicos_resumo %}
+                        <tr>
+                            <td><strong>{{ servico.nome|truncatewords:6 }}</strong></td>
+                            <td class="text-center"><span class="badge bg-primary">{{ servico.total }}</span></td>
+                            <td class="text-center">
+                                {% if servico.criticas > 0 %}
+                                <span class="badge bg-danger">{{ servico.criticas }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if servico.altas > 0 %}
+                                <span class="badge bg-warning text-dark">{{ servico.altas }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if servico.medias > 0 %}
+                                <span class="badge bg-info text-dark">{{ servico.medias }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Lista Completa -->
+    <div class="card-custom">
+        <div class="card-header-custom">
+            <h3 class="card-title-custom">
+                Lista Completa de Tarefas ({{ tarefas.paginator.count }})
+            </h3>
+        </div>
+        <div class="card-body-custom" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Criticidade</th>
+                            <th>Protocolo</th>
+                            <th>Serviço</th>
+                            <th>Status</th>
+                            <th>Distribuição</th>
+                            <th class="text-center">Dias Pend.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in tarefas %}
+                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade }};">
+                            <td>{{ tarefa.badge_html_criticidade|safe }}</td>
+                            <td><code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code></td>
+                            <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
+                            <td><small>{{ tarefa.status_tarefa }}</small></td>
+                            <td><small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y" }}</small></td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Nenhuma tarefa atribuída
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginação -->
+        {% if tarefas.has_other_pages %}
+        <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if tarefas.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tarefas.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">Página {{ tarefas.number }}</span></li>
+                    {% if tarefas.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tarefas.next_page_number }}">Próxima</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('grafico-criticidade').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ grafico_criticidade.labels | safe }},
+        datasets: [{
+            data: {{ grafico_criticidade.data | safe }},
+        backgroundColor: {{ grafico_criticidade.colors | safe }},
+        borderWidth: 2,
+        borderColor: '#fff'
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+    });
+});
+</script>
+{% endblock %}

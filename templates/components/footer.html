@@ -1,0 +1,99 @@
+{% load tz %}
+
+<style>
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 1020;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    padding: 5px 0; /* Reduzido de 8px */
+    font-size: 0.7rem; /* Reduzido de 0.75rem */
+    border-top: 1px solid #dee2e6;
+    transition: margin-left .25s ease-in-out;
+}
+
+/* Ajusta o footer quando sidebar está expandido */
+#sidebar.expand ~ .main .footer,
+#sidebar.expand ~ .footer {
+    margin-left: 220px; /* Atualizado de 240px */
+}
+
+#sidebar:not(.expand) ~ .main .footer,
+#sidebar:not(.expand) ~ .footer {
+    margin-left: 60px; /* Atualizado de 70px */
+}
+
+.footer .container-fluid {
+    padding: 0 1rem; /* Reduzido de 1.5rem */
+}
+
+.footer .row {
+    align-items: center;
+}
+
+.footer i {
+    margin-right: 3px; /* Reduzido de 5px */
+    font-size: 0.65rem; /* Menor */
+}
+
+@media (max-width: 768px) {
+    .footer {
+        margin-left: 0 !important;
+        font-size: 0.65rem; /* Ainda menor em mobile */
+    }
+}
+</style>
+
+<footer class="footer">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6 text-muted">
+                <i class="fas fa-clock"></i>
+                <span>{% now "d/m/Y H:i:s" %}</span>
+            </div>
+            <div class="col-md-6 text-muted text-end">
+                <span>
+                    <i class="fas fa-network-wired"></i>
+                    IP: {{ request.META.REMOTE_ADDR }}
+                </span>
+                <span class="ms-3">
+                    <i class="fas fa-users"></i>
+                    Online: {{ online_users_count|default:"0" }}
+                </span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+// Ajusta a margem do footer quando o sidebar muda
+document.addEventListener("DOMContentLoaded", function() {
+    const sidebar = document.getElementById('sidebar');
+    const footer = document.querySelector('.footer');
+    
+    if (sidebar && footer) {
+        // Observer para detectar mudanças no sidebar
+        const observer = new MutationObserver(function() {
+            if (sidebar.classList.contains('expand')) {
+                footer.style.marginLeft = '220px'; // Atualizado
+            } else {
+                footer.style.marginLeft = '60px'; // Atualizado
+            }
+        });
+        
+        observer.observe(sidebar, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+        // Define estado inicial
+        if (sidebar.classList.contains('expand')) {
+            footer.style.marginLeft = '220px';
+        } else {
+            footer.style.marginLeft = '60px';
+        }
+    }
+});
+</script>

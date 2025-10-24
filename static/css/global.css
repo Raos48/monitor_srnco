@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Open+Sans&family=Roboto:wght@400;500;900&display=swap');
+
+/* Reset de Links */
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: color .2s ease;
+}
+
+a:hover {
+    color: #0e2238;
+}
+
+/* Padding do conteúdo principal */
+.main {
+    padding-bottom: 60px;
+}
+
+/* Dropdown pequeno */
+.small-dropdown .dropdown-item {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 0.5rem;
+    }
+
+    h1 {
+        font-size: 1.25rem;
+    }
+
+    .btn {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+}

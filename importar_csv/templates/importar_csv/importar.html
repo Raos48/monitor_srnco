@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Importar Tarefas via CSV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Importação de Dados de Tarefas</h1>
+    <p class="page-subtitle">Faça o upload de um arquivo CSV para criar ou atualizar as tarefas no sistema.</p>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">Enviar Novo Arquivo</h2>
+            </div>
+            <div class="card-body-custom">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.arquivo_csv.id_for_label }}" class="form-label">{{ form.arquivo_csv.label }}</label>
+                        {{ form.arquivo_csv }}
+                        <div class="form-text">{{ form.arquivo_csv.help_text }}</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom">
+                        <i class="bi bi-upload"></i> Iniciar Importação
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card-custom">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">Últimas Importações</h2>
+            </div>
+            <div class="card-body-custom">
+                {% if ultimas_importacoes %}
+                <ul class="list-group list-group-flush">
+                    {% for registro in ultimas_importacoes %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-file-earmark-check-fill text-success"></i>
+                            <strong>{{ registro.usuario.nome_completo|default:"N/A" }}</strong>
+                            <small class="text-muted">em {{ registro.data_importacao|date:"d/m/Y H:i" }}</small>
+                            <br>
+                            <small>Arquivo: <em>{{ registro.nome_arquivo }}</em></small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">
+                            {{ registro.registros_criados }}/{{ registro.registros_atualizados }}
+                            <i class="bi bi-info-circle" title="Criadas / Atualizadas"></i>
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">Nenhum registro de importação encontrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

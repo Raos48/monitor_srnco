@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lista de Servidores - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-users"></i>
+                Lista de Servidores
+            </h1>
+            <p class="text-muted mb-0">
+                {{ total_servidores }} servidores | {{ total_criticas }} críticas | {{ total_altas }} altas
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-custom mb-4">
+        <div class="card-header-custom">
+            <h3 class="card-title-custom">
+                <i class="fas fa-filter"></i> Filtros
+            </h3>
+        </div>
+        <div class="card-body-custom">
+            <form method="GET" action="{% url 'tarefas:lista_servidores' %}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Nome:</label>
+                        <input type="text" class="form-control form-control-sm" name="nome" 
+                               value="{{ filtros_ativos.nome }}" placeholder="Nome do servidor">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">SIAPE:</label>
+                        <input type="text" class="form-control form-control-sm" name="siape" 
+                               value="{{ filtros_ativos.siape }}" placeholder="1234567">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">GEX:</label>
+                        <input type="text" class="form-control form-control-sm" name="gex" 
+                               value="{{ filtros_ativos.gex }}" placeholder="GEX">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ordenar por:</label>
+                        <select class="form-select form-select-sm" name="ordem">
+                            <option value="criticas" {% if filtros_ativos.ordem == 'criticas' %}selected{% endif %}>Críticas</option>
+                            <option value="total" {% if filtros_ativos.ordem == 'total' %}selected{% endif %}>Total</option>
+                            <option value="nome" {% if filtros_ativos.ordem == 'nome' %}selected{% endif %}>Nome</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card-custom">
+        <div class="card-body-custom" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">#</th>
+                            <th style="width: 10%;">SIAPE</th>
+                            <th style="width: 25%;">Nome</th>
+                            <th style="width: 15%;">GEX</th>
+                            <th style="width: 7%;" class="text-center">Total</th>
+                            <th style="width: 7%;" class="text-center">🔴</th>
+                            <th style="width: 7%;" class="text-center">🟠</th>
+                            <th style="width: 7%;" class="text-center">🟡</th>
+                            <th style="width: 7%;" class="text-center">% Crít.</th>
+                            <th style="width: 7%;" class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in servidores %}
+                        <tr>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td><code style="font-size: 0.75rem;">{{ item.servidor.siape }}</code></td>
+                            <td>{{ item.servidor.nome_completo|truncatechars:35 }}</td>
+                            <td><small>{{ item.servidor.gex|default:"N/A" }}</small></td>
+                            <td class="text-center"><span class="badge bg-primary">{{ item.total }}</span></td>
+                            <td class="text-center">
+                                {% if item.criticas > 0 %}
+                                    <span class="badge bg-danger">{{ item.criticas }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.altas > 0 %}
+                                    <span class="badge bg-warning text-dark">{{ item.altas }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if item.medias > 0 %}
+                                    <span class="badge bg-info text-dark">{{ item.medias }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% widthratio item.criticas item.total 100 as perc %}
+                                {% if perc > 20 %}
+                                    <span class="badge bg-danger">{{ perc }}%</span>
+                                {% elif perc > 10 %}
+                                    <span class="badge bg-warning text-dark">{{ perc }}%</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ perc }}%</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'tarefas:detalhe_servidor' item.servidor.siape %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">Nenhum servidor encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginação -->
+        {% if servidores.has_other_pages %}
+        <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if servidores.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ servidores.previous_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">Página {{ servidores.number }}</span></li>
+                    {% if servidores.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ servidores.next_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Próxima</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

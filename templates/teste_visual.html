@@ -1,0 +1,84 @@
+{% extends 'base_new.html' %}
+
+{% block title %}Teste Visual{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>🎨 Teste do Novo Visual</h1>
+    
+    <div class="row mt-4">
+        <!-- Card de Teste -->
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon text-primary">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="kpi-value">150</div>
+                <div class="kpi-label">Total de Tarefas</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon text-warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="kpi-value">25</div>
+                <div class="kpi-label">Pendentes</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="kpi-value">125</div>
+                <div class="kpi-label">Concluídas</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon text-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="kpi-value">5</div>
+                <div class="kpi-label">Atrasadas</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabela de Teste -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Protocolo</th>
+                            <th>Status</th>
+                            <th>Servidor</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1000001</td>
+                            <td><span class="badge bg-warning">Pendente</span></td>
+                            <td>João Silva</td>
+                            <td>20/10/2025</td>
+                        </tr>
+                        <tr>
+                            <td>1000002</td>
+                            <td><span class="badge bg-success">Concluída</span></td>
+                            <td>Maria Santos</td>
+                            <td>19/10/2025</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
