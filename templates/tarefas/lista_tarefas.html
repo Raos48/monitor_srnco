@@ -7,7 +7,7 @@
 <div class="container-fluid">
 
     <!-- ============================================
-         CABEÇALHO COM RESUMO
+         CABEÇALHO
          ============================================ -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -16,7 +16,7 @@
                 Lista de Tarefas
             </h1>
             <p class="text-muted mb-0">
-                Mostrando {{ tarefas.paginator.count }} tarefas
+                {{ kpis.total }} tarefas | {{ kpis.criticas }} críticas | {{ kpis.altas }} altas
             </p>
         </div>
         <div>
@@ -27,42 +27,42 @@
     </div>
 
     <!-- ============================================
-         RESUMO DA BUSCA (KPIs)
+         KPIs
          ============================================ -->
     <div class="row g-3 mb-4">
         <div class="col-md-2">
-            <div class="kpi-card-small">
-                <div class="kpi-value">{{ stats_busca.total }}</div>
+            <div class="kpi-card">
+                <div class="kpi-value">{{ kpis.total }}</div>
                 <div class="kpi-label">Total</div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="kpi-card-small" style="border-left: 3px solid #dc3545;">
-                <div class="kpi-value" style="color: #dc3545;">{{ stats_busca.CRÍTICA }}</div>
+            <div class="kpi-card" style="border-left: 4px solid #dc3545;">
+                <div class="kpi-value" style="color: #dc3545;">{{ kpis.criticas }}</div>
                 <div class="kpi-label">🔴 Críticas</div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="kpi-card-small" style="border-left: 3px solid #fd7e14;">
-                <div class="kpi-value" style="color: #fd7e14;">{{ stats_busca.ALTA }}</div>
+            <div class="kpi-card" style="border-left: 4px solid #fd7e14;">
+                <div class="kpi-value" style="color: #fd7e14;">{{ kpis.altas }}</div>
                 <div class="kpi-label">🟠 Altas</div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="kpi-card-small" style="border-left: 3px solid #ffc107;">
-                <div class="kpi-value" style="color: #f39c12;">{{ stats_busca.MÉDIA }}</div>
+            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
+                <div class="kpi-value" style="color: #f39c12;">{{ kpis.medias }}</div>
                 <div class="kpi-label">🟡 Médias</div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="kpi-card-small" style="border-left: 3px solid #28a745;">
-                <div class="kpi-value" style="color: #28a745;">{{ stats_busca.BAIXA }}</div>
+            <div class="kpi-card" style="border-left: 4px solid #28a745;">
+                <div class="kpi-value" style="color: #28a745;">{{ kpis.baixas }}</div>
                 <div class="kpi-label">🟢 Baixas</div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="kpi-card-small" style="border-left: 3px solid #6c757d;">
-                <div class="kpi-value" style="color: #6c757d;">{{ stats_busca.NENHUMA }}</div>
+            <div class="kpi-card" style="border-left: 4px solid #6c757d;">
+                <div class="kpi-value">{{ kpis.normais }}</div>
                 <div class="kpi-label">⚪ Normais</div>
             </div>
         </div>
@@ -80,114 +80,47 @@
         <div class="card-body-custom">
             <form method="GET" action="{% url 'tarefas:lista_tarefas' %}">
                 <div class="row g-3">
-                    <!-- Protocolo -->
                     <div class="col-md-3">
                         <label class="form-label">Protocolo:</label>
-                        <input type="text" 
-                               class="form-control form-control-sm" 
-                               name="protocolo" 
-                               value="{{ filtros_ativos.protocolo }}"
-                               placeholder="Ex: 1000040519">
+                        <input type="text" class="form-control form-control-sm" name="protocolo" 
+                               value="{{ filtros_ativos.protocolo }}" placeholder="Número do protocolo">
                     </div>
-
-                    <!-- Nível -->
                     <div class="col-md-2">
                         <label class="form-label">Criticidade:</label>
                         <select class="form-select form-select-sm" name="nivel">
-                            <option value="">Todos</option>
-                            <option value="CRÍTICA" {% if filtros_ativos.nivel == 'CRÍTICA' %}selected{% endif %}>
-                                🔴 Crítica
-                            </option>
-                            <option value="ALTA" {% if filtros_ativos.nivel == 'ALTA' %}selected{% endif %}>
-                                🟠 Alta
-                            </option>
-                            <option value="MÉDIA" {% if filtros_ativos.nivel == 'MÉDIA' %}selected{% endif %}>
-                                🟡 Média
-                            </option>
-                            <option value="BAIXA" {% if filtros_ativos.nivel == 'BAIXA' %}selected{% endif %}>
-                                🟢 Baixa
-                            </option>
-                            <option value="NENHUMA" {% if filtros_ativos.nivel == 'NENHUMA' %}selected{% endif %}>
-                                ⚪ Normal
-                            </option>
-                        </select>
-                    </div>
-
-                    <!-- Status -->
-                    <div class="col-md-3">
-                        <label class="form-label">Status:</label>
-                        <select class="form-select form-select-sm" name="status">
-                            <option value="">Todos</option>
-                            {% for status in status_opcoes %}
-                            <option value="{{ status }}" {% if filtros_ativos.status == status %}selected{% endif %}>
-                                {{ status }}
-                            </option>
+                            <option value="">Todas</option>
+                            {% for nivel in niveis_disponiveis %}
+                                <option value="{{ nivel }}" {% if filtros_ativos.nivel == nivel %}selected{% endif %}>
+                                    {{ nivel }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
-
-                    <!-- Servidor -->
-                    <div class="col-md-4">
-                        <label class="form-label">Servidor (SIAPE ou Nome):</label>
-                        <input type="text" 
-                               class="form-control form-control-sm" 
-                               name="servidor" 
-                               value="{{ filtros_ativos.servidor }}"
-                               placeholder="Ex: 1234567 ou João Silva">
-                    </div>
-
-                    <!-- Serviço -->
-                    <div class="col-md-4">
-                        <label class="form-label">Serviço:</label>
-                        <input type="text" 
-                               class="form-control form-control-sm" 
-                               name="servico" 
-                               value="{{ filtros_ativos.servico }}"
-                               placeholder="Ex: Aposentadoria">
-                    </div>
-
-                    <!-- Data Início -->
                     <div class="col-md-2">
-                        <label class="form-label">Data Início:</label>
-                        <input type="date" 
-                               class="form-control form-control-sm" 
-                               name="data_inicio" 
-                               value="{{ filtros_ativos.data_inicio }}">
-                    </div>
-
-                    <!-- Data Fim -->
-                    <div class="col-md-2">
-                        <label class="form-label">Data Fim:</label>
-                        <input type="date" 
-                               class="form-control form-control-sm" 
-                               name="data_fim" 
-                               value="{{ filtros_ativos.data_fim }}">
-                    </div>
-
-                    <!-- Ordenação -->
-                    <div class="col-md-2">
-                        <label class="form-label">Ordenar por:</label>
-                        <select class="form-select form-select-sm" name="ordem">
-                            <option value="criticidade" {% if filtros_ativos.ordem == 'criticidade' %}selected{% endif %}>
-                                Criticidade
-                            </option>
-                            <option value="protocolo" {% if filtros_ativos.ordem == 'protocolo' %}selected{% endif %}>
-                                Protocolo
-                            </option>
-                            <option value="data" {% if filtros_ativos.ordem == 'data' %}selected{% endif %}>
-                                Data
-                            </option>
+                        <label class="form-label">Status:</label>
+                        <select class="form-select form-select-sm" name="status">
+                            <option value="">Todos</option>
+                            {% for status in status_disponiveis %}
+                                <option value="{{ status }}" {% if filtros_ativos.status == status %}selected{% endif %}>
+                                    {{ status|truncatechars:20 }}
+                                </option>
+                            {% endfor %}
                         </select>
                     </div>
-
-                    <!-- Botões -->
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary btn-sm me-2">
-                            <i class="fas fa-search"></i> Filtrar
+                    <div class="col-md-2">
+                        <label class="form-label">Servidor:</label>
+                        <input type="text" class="form-control form-control-sm" name="servidor" 
+                               value="{{ filtros_ativos.servidor }}" placeholder="SIAPE ou nome">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Serviço:</label>
+                        <input type="text" class="form-control form-control-sm" name="servico" 
+                               value="{{ filtros_ativos.servico }}" placeholder="Nome do serviço">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-search"></i>
                         </button>
-                        <a href="{% url 'tarefas:lista_tarefas' %}" class="btn btn-secondary btn-sm">
-                            <i class="fas fa-times"></i> Limpar
-                        </a>
                     </div>
                 </div>
             </form>
@@ -195,61 +128,89 @@
     </div>
 
     <!-- ============================================
-         TABELA DE TAREFAS
+         TABELA COM ALERTAS E PROTOCOLOS CLICÁVEIS
          ============================================ -->
     <div class="card-custom">
-        <div class="card-header-custom">
-            <h3 class="card-title-custom">
-                Resultados ({{ tarefas.paginator.count }})
-            </h3>
-        </div>
         <div class="card-body-custom" style="padding: 0;">
             <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0" id="tabela-tarefas">
+                <table class="table table-hover table-sm mb-0">
                     <thead>
                         <tr>
                             <th style="width: 8%;">Criticidade</th>
                             <th style="width: 12%;">Protocolo</th>
-                            <th style="width: 15%;">Servidor</th>
-                            <th style="width: 18%;">Serviço</th>
+                            <th style="width: 15%;">Serviço</th>
                             <th style="width: 10%;">Status</th>
-                            <th style="width: 12%;">Distribuição</th>
-                            <th style="width: 10%;" class="text-center">Dias Pend.</th>
-                            <th style="width: 15%;">Alerta</th>
+                            <th style="width: 15%;">Servidor</th>
+                            <th style="width: 25%;">Alerta / Descrição</th>
+                            <th style="width: 8%;" class="text-center">Dias Pend.</th>
+                            <th style="width: 7%;" class="text-center">Distribuição</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for tarefa in tarefas %}
-                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade }};">
-                            <td>{{ tarefa.badge_html_criticidade|safe }}</td>
-                            <td><code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code></td>
+                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
+                            
+                            <!-- Criticidade -->
+                            <td>
+                                <span class="badge" style="background-color: {{ tarefa.cor_criticidade_calculado }}; color: white;">
+                                    {{ tarefa.emoji_criticidade }} {{ tarefa.nivel_criticidade_calculado }}
+                                </span>
+                            </td>
+                            
+                            <!-- ✅ PROTOCOLO CLICÁVEL (ABRE INSS EM NOVA ABA) -->
+                            <td>
+                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
+                                   target="_blank" 
+                                   class="protocolo-link"
+                                   title="Abrir tarefa no sistema INSS">
+                                    <code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                    <i class="fas fa-external-link-alt ms-1" style="font-size: 0.6rem;"></i>
+                                </a>
+                            </td>
+                            
+                            <!-- Serviço -->
+                            <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
+                            
+                            <!-- Status -->
+                            <td><small>{{ tarefa.status_tarefa|truncatechars:20 }}</small></td>
+                            
+                            <!-- Servidor -->
                             <td>
                                 <small>
-                                    <a href="{% url 'tarefas:detalhe_servidor' tarefa.siape_responsavel.siape %}">
-                                        {{ tarefa.nome_profissional_responsavel|truncatechars:25 }}
-                                    </a>
+                                    {% if tarefa.siape_responsavel %}
+                                        <a href="{% url 'tarefas:detalhe_servidor' tarefa.siape_responsavel.siape %}" class="text-primary">
+                                            {{ tarefa.nome_profissional_responsavel|truncatewords:3 }}
+                                        </a>
+                                    {% else %}
+                                        {{ tarefa.nome_profissional_responsavel|truncatewords:3|default:"Não atribuído" }}
+                                    {% endif %}
                                 </small>
                             </td>
-                            <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
+                            
+                            <!-- ✅ ALERTA CLICÁVEL (REDIRECIONA PARA DETALHE) -->
                             <td>
-                                {% if tarefa.status_tarefa == 'Pendente' %}
-                                    <span class="badge bg-warning text-dark">Pendente</span>
-                                {% elif tarefa.status_tarefa == 'Cumprimento de exigência' %}
-                                    <span class="badge bg-info">Cumprimento</span>
+                                {% if tarefa.alerta_criticidade_calculado %}
+                                    <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" 
+                                       class="alerta-link"
+                                       title="Ver detalhes da criticidade">
+                                        <small class="text-primary">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            {{ tarefa.alerta_criticidade_calculado|truncatewords:8 }}
+                                        </small>
+                                    </a>
                                 {% else %}
-                                    <span class="badge bg-secondary">{{ tarefa.status_tarefa }}</span>
+                                    <small class="text-muted">-</small>
                                 {% endif %}
                             </td>
-                            <td><small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y"|default:"-" }}</small></td>
+                            
+                            <!-- Dias Pendência -->
                             <td class="text-center">
                                 <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
                             </td>
-                            <td>
-                                {% if tarefa.tem_criticidade %}
-                                    <small class="text-muted">{{ tarefa.alerta_criticidade|truncatewords:5 }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
+                            
+                            <!-- Distribuição -->
+                            <td class="text-center">
+                                <small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y"|default:"-" }}</small>
                             </td>
                         </tr>
                         {% empty %}
@@ -264,39 +225,29 @@
             </div>
         </div>
 
-        <!-- Paginação -->
+        <!-- ============================================
+             PAGINAÇÃO
+             ============================================ -->
         {% if tarefas.has_other_pages %}
         <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
             <nav>
                 <ul class="pagination pagination-sm mb-0 justify-content-center">
                     {% if tarefas.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page=1{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            &laquo; Primeira
-                        </a>
-                    </li>
-                    <li class="page-item">
                         <a class="page-link" href="?page={{ tarefas.previous_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             Anterior
                         </a>
                     </li>
                     {% endif %}
-
+                    
                     <li class="page-item active">
-                        <span class="page-link">
-                            Página {{ tarefas.number }} de {{ tarefas.paginator.num_pages }}
-                        </span>
+                        <span class="page-link">Página {{ tarefas.number }} de {{ tarefas.paginator.num_pages }}</span>
                     </li>
-
+                    
                     {% if tarefas.has_next %}
                     <li class="page-item">
                         <a class="page-link" href="?page={{ tarefas.next_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
                             Próxima
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ tarefas.paginator.num_pages }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            Última &raquo;
                         </a>
                     </li>
                     {% endif %}
@@ -308,24 +259,39 @@
 
 </div>
 
+<!-- ============================================
+     ESTILOS CUSTOMIZADOS
+     ============================================ -->
 <style>
-.kpi-card-small {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    text-align: center;
+.protocolo-link {
+    color: #0e2238;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
-.kpi-card-small .kpi-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
+.protocolo-link:hover {
+    color: #007bff;
+    text-decoration: underline;
 }
 
-.kpi-card-small .kpi-label {
-    font-size: 0.75rem;
-    color: #6c757d;
+.alerta-link {
+    color: #007bff;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.alerta-link:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
 }
 </style>
 

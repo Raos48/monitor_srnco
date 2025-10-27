@@ -6,7 +6,9 @@
 {% block content %}
 <div class="container-fluid">
 
-    <!-- Cabeçalho -->
+    <!-- ============================================
+         CABEÇALHO
+         ============================================ -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-1">
@@ -24,25 +26,41 @@
         </div>
     </div>
 
+    <!-- ============================================
+         CARDS DE REGRAS (NOVO)
+         ============================================ -->
+    <div class="mb-3">
+        <h3><i class="fas fa-info-circle text-primary"></i> Tarefas por Regra de Criticidade</h3>
+    </div>
 
-    <!-- Cards de Regras -->
-     <h1>TESTE CARD REGRAS</h1>
     <div class="row g-3 mb-4">
         {% for regra, info in regras_resumo.items %}
         <div class="col-md-6">
-            <div class="card-info-regra">
-                <h5>{{ regra }} - {{ info.nome }}</h5>
-                <div class="badge {{ info.badge_class }}">
-                    {{ info.count }} tarefas
+            <div class="card h-100" style="border-left: 4px solid {% if info.badge_class == 'bg-info' %}#17a2b8{% elif info.badge_class == 'bg-warning' %}#ffc107{% elif info.badge_class == 'bg-primary' %}#007bff{% else %}#28a745{% endif %};">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1"><i class="{{ info.icon }} me-2"></i>{{ info.nome|truncatewords:6 }}</h5>
+                            <span class="badge {{ info.badge_class }} mb-2">{{ regra }}</span>
+                            <p class="mb-1"><small>{{ info.descricao|truncatewords:15 }}</small></p>
+                            <p class="mb-0"><small class="text-muted"><i class="fas fa-clock"></i> {{ info.prazo }}</small></p>
+                        </div>
+                        <div class="text-end">
+                            <h2 style="color: {% if info.badge_class == 'bg-info' %}#17a2b8{% elif info.badge_class == 'bg-warning' %}#ffc107{% elif info.badge_class == 'bg-primary' %}#007bff{% else %}#28a745{% endif %};">
+                                {{ info.count }}
+                            </h2>
+                            <small class="text-muted">tarefas</small>
+                        </div>
+                    </div>
                 </div>
-                <p>{{ info.descricao }}</p>
-                <small>Prazo: {{ info.prazo }}</small>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- KPIs -->
+    <!-- ============================================
+         KPIs
+         ============================================ -->
     <div class="row g-3 mb-4">
         <div class="col-md-2">
             <div class="kpi-card">
@@ -82,7 +100,9 @@
         </div>
     </div>
 
-    <!-- Gráfico + Tarefas Prioritárias -->
+    <!-- ============================================
+         GRÁFICO + TAREFAS PRIORITÁRIAS
+         ============================================ -->
     <div class="row g-3 mb-4">
         <!-- Gráfico -->
         <div class="col-lg-5">
@@ -114,17 +134,27 @@
                                     <th>Criticidade</th>
                                     <th>Protocolo</th>
                                     <th>Serviço</th>
-                                    <th>Status</th>
+                                    <th>Alerta</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for tarefa in tarefas_prioritarias %}
-                                <tr style="border-left: 4px solid {{ tarefa.cor_criticidade }};">
+                                <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
                                     <td>{{ tarefa.badge_html_criticidade|safe }}</td>
-                                    <td><code style="font-size: 0.7rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                    <td>
+                                        <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
+                                           target="_blank" 
+                                           class="protocolo-link">
+                                            <code style="font-size: 0.7rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                            <i class="fas fa-external-link-alt" style="font-size: 0.5rem;"></i>
+                                        </a>
                                     </td>
                                     <td><small>{{ tarefa.nome_servico|truncatewords:3 }}</small></td>
-                                    <td><small>{{ tarefa.status_tarefa }}</small></td>
+                                    <td>
+                                        <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" class="alerta-link">
+                                            <small>{{ tarefa.alerta_criticidade_calculado|truncatewords:5 }}</small>
+                                        </a>
+                                    </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
@@ -141,7 +171,9 @@
         </div>
     </div>
 
-    <!-- Resumo por Serviço -->
+    <!-- ============================================
+         RESUMO POR SERVIÇO
+         ============================================ -->
     {% if servicos_resumo %}
     <div class="card-custom mb-4">
         <div class="card-header-custom">
@@ -190,7 +222,9 @@
     </div>
     {% endif %}
 
-    <!-- Lista Completa -->
+    <!-- ============================================
+         LISTA COMPLETA
+         ============================================ -->
     <div class="card-custom">
         <div class="card-header-custom">
             <h3 class="card-title-custom">
@@ -206,17 +240,34 @@
                             <th>Protocolo</th>
                             <th>Serviço</th>
                             <th>Status</th>
+                            <th>Alerta / Descrição</th>
                             <th>Distribuição</th>
                             <th class="text-center">Dias Pend.</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for tarefa in tarefas %}
-                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade }};">
+                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
                             <td>{{ tarefa.badge_html_criticidade|safe }}</td>
-                            <td><code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code></td>
+                            <td>
+                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
+                                   target="_blank" 
+                                   class="protocolo-link">
+                                    <code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                    <i class="fas fa-external-link-alt" style="font-size: 0.5rem;"></i>
+                                </a>
+                            </td>
                             <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
-                            <td><small>{{ tarefa.status_tarefa }}</small></td>
+                            <td><small>{{ tarefa.status_tarefa|truncatechars:20 }}</small></td>
+                            <td>
+                                {% if tarefa.alerta_criticidade_calculado %}
+                                    <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" class="alerta-link">
+                                        <small>{{ tarefa.alerta_criticidade_calculado|truncatewords:8 }}</small>
+                                    </a>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
                             <td><small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y" }}</small></td>
                             <td class="text-center">
                                 <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
@@ -224,7 +275,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 Nenhuma tarefa atribuída
                             </td>
                         </tr>
@@ -258,32 +309,54 @@
 
 </div>
 
+<style>
+.protocolo-link {
+    color: #0e2238;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.protocolo-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.alerta-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.alerta-link:hover {
+    text-decoration: underline;
+}
+</style>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const ctx = document.getElementById('grafico-criticidade').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: {{ grafico_criticidade.labels | safe }},
-        datasets: [{
-            data: {{ grafico_criticidade.data | safe }},
-        backgroundColor: {{ grafico_criticidade.colors | safe }},
-        borderWidth: 2,
-        borderColor: '#fff'
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('grafico-criticidade').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ grafico_criticidade.labels | safe }},
+            datasets: [{
+                data: {{ grafico_criticidade.data | safe }},
+                backgroundColor: {{ grafico_criticidade.colors | safe }},
+                borderWidth: 2,
+                borderColor: '#fff'
             }]
         },
         options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {
-                position: 'bottom'
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
             }
         }
-    }
     });
 });
 </script>

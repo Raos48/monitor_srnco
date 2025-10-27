@@ -5,17 +5,10 @@
 
 {% block content %}
 <div class="container-fluid">
-
-    <!-- Cabeçalho -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="mb-1">
-                <i class="fas fa-users"></i>
-                Lista de Servidores
-            </h1>
-            <p class="text-muted mb-0">
-                {{ total_servidores }} servidores | {{ total_criticas }} críticas | {{ total_altas }} altas
-            </p>
+            <h1 class="mb-1"><i class="fas fa-users"></i> Lista de Servidores</h1>
+            <p class="text-muted mb-0">{{ total_servidores }} servidores | {{ total_criticas }} críticas | {{ total_altas }} altas</p>
         </div>
         <div>
             <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
@@ -26,28 +19,21 @@
 
     <!-- Filtros -->
     <div class="card-custom mb-4">
-        <div class="card-header-custom">
-            <h3 class="card-title-custom">
-                <i class="fas fa-filter"></i> Filtros
-            </h3>
-        </div>
+        <div class="card-header-custom"><h3 class="card-title-custom"><i class="fas fa-filter"></i> Filtros</h3></div>
         <div class="card-body-custom">
-            <form method="GET" action="{% url 'tarefas:lista_servidores' %}">
+            <form method="GET">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Nome:</label>
-                        <input type="text" class="form-control form-control-sm" name="nome" 
-                               value="{{ filtros_ativos.nome }}" placeholder="Nome do servidor">
+                        <input type="text" class="form-control form-control-sm" name="nome" value="{{ filtros_ativos.nome }}" placeholder="Nome do servidor">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">SIAPE:</label>
-                        <input type="text" class="form-control form-control-sm" name="siape" 
-                               value="{{ filtros_ativos.siape }}" placeholder="1234567">
+                        <input type="text" class="form-control form-control-sm" name="siape" value="{{ filtros_ativos.siape }}" placeholder="1234567">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">GEX:</label>
-                        <input type="text" class="form-control form-control-sm" name="gex" 
-                               value="{{ filtros_ativos.gex }}" placeholder="GEX">
+                        <input type="text" class="form-control form-control-sm" name="gex" value="{{ filtros_ativos.gex }}" placeholder="GEX">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Ordenar por:</label>
@@ -58,9 +44,7 @@
                         </select>
                     </div>
                     <div class="col-md-1 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-search"></i>
-                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i></button>
                     </div>
                 </div>
             </form>
@@ -95,41 +79,28 @@
                             <td><small>{{ item.servidor.gex|default:"N/A" }}</small></td>
                             <td class="text-center"><span class="badge bg-primary">{{ item.total }}</span></td>
                             <td class="text-center">
-                                {% if item.criticas > 0 %}
-                                    <span class="badge bg-danger">{{ item.criticas }}</span>
-                                {% else %}-{% endif %}
+                                {% if item.criticas > 0 %}<span class="badge bg-danger">{{ item.criticas }}</span>{% else %}-{% endif %}
                             </td>
                             <td class="text-center">
-                                {% if item.altas > 0 %}
-                                    <span class="badge bg-warning text-dark">{{ item.altas }}</span>
-                                {% else %}-{% endif %}
+                                {% if item.altas > 0 %}<span class="badge bg-warning text-dark">{{ item.altas }}</span>{% else %}-{% endif %}
                             </td>
                             <td class="text-center">
-                                {% if item.medias > 0 %}
-                                    <span class="badge bg-info text-dark">{{ item.medias }}</span>
-                                {% else %}-{% endif %}
+                                {% if item.medias > 0 %}<span class="badge bg-info text-dark">{{ item.medias }}</span>{% else %}-{% endif %}
                             </td>
                             <td class="text-center">
                                 {% widthratio item.criticas item.total 100 as perc %}
-                                {% if perc > 20 %}
-                                    <span class="badge bg-danger">{{ perc }}%</span>
-                                {% elif perc > 10 %}
-                                    <span class="badge bg-warning text-dark">{{ perc }}%</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ perc }}%</span>
-                                {% endif %}
+                                {% if perc > 20 %}<span class="badge bg-danger">{{ perc }}%</span>
+                                {% elif perc > 10 %}<span class="badge bg-warning text-dark">{{ perc }}%</span>
+                                {% else %}<span class="badge bg-secondary">{{ perc }}%</span>{% endif %}
                             </td>
                             <td class="text-center">
-                                <a href="{% url 'tarefas:detalhe_servidor' item.servidor.siape %}" 
-                                   class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'tarefas:detalhe_servidor' item.servidor.siape %}" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
-                            <td colspan="10" class="text-center text-muted py-4">Nenhum servidor encontrado.</td>
-                        </tr>
+                        <tr><td colspan="10" class="text-center text-muted py-4">Nenhum servidor encontrado.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -142,21 +113,16 @@
             <nav>
                 <ul class="pagination pagination-sm mb-0 justify-content-center">
                     {% if servidores.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ servidores.previous_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a>
-                    </li>
+                    <li class="page-item"><a class="page-link" href="?page={{ servidores.previous_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Anterior</a></li>
                     {% endif %}
                     <li class="page-item active"><span class="page-link">Página {{ servidores.number }}</span></li>
                     {% if servidores.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ servidores.next_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Próxima</a>
-                    </li>
+                    <li class="page-item"><a class="page-link" href="?page={{ servidores.next_page_number }}{% for key, value in filtros_ativos.items %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Próxima</a></li>
                     {% endif %}
                 </ul>
             </nav>
         </div>
         {% endif %}
     </div>
-
 </div>
 {% endblock %}

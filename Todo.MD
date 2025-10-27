@@ -1,0 +1,11 @@
+-Papel Equipe Volante
+-Funcionalidade para inserir comentario.
+-Sinalizar Eventualidade.
+-Funcionalidade para reportar ocorrencias.
+-Solicitar Ajuda.
+-Funcionalidade Limpeza de Caixas com ou sem transbordo.
+-Funcionalidade 
+-Implementar contador tempo que a tarefa está na fila do servidor.
+-Nova regra data da conclusão da sub prazo.
+-Indicador % tarefas com subtarefa no painel do coordenador.
+-INdicador % de tarefas com exigencia no painel do servidor.

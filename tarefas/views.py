@@ -1,22 +1,27 @@
 """
 VIEWS COMPLETAS - SISTEMA DE 5 NÍVEIS DE CRITICIDADE
-Arquitetura Limpa e Modular - VERSÃO OTIMIZADA
+Arquitetura Limpa e Modular - VERSÃO OTIMIZADA E REFATORADA v3.0
 
-✅ OTIMIZAÇÕES APLICADAS:
-- Filtro por criticidade usa campo calculado (SQL)
-- Ordenação usa índice do banco (pontuacao_criticidade)
-- Estatísticas usam aggregate SQL
+✅ REFATORAÇÃO v3.0 - MELHORIAS DE UX PROFISSIONAL:
+- Links clicáveis para protocolos (abre INSS em nova aba)
+- Alertas clicáveis que redirecionam para detalhe da tarefa
+- Descrição detalhada e alerta exibidos nas tabelas
+- Gráficos com informações de criticidade expandidas
+- Template detalhe_tarefa completamente redesenhado
+- Cards de regras nos dashboards
+- Contexto rico para todos os templates
 
 ESTRUTURA:
-1. Dashboard Coordenador (LIMPO - só KPIs + Gráficos)
+1. Dashboard Coordenador (KPIs + Gráficos + Cards de Regras)
 2. Dashboard Servidor (redireciona para detalhes)
-3. Lista de Tarefas (com filtros OTIMIZADOS)
+3. Lista de Tarefas (com filtros + alertas clicáveis)
 4. Lista de Servidores (com filtros)
-5. Detalhes do Servidor (OTIMIZADO)
-6. Detalhes da Tarefa (completo)
+5. Detalhes do Servidor (com cards de regras)
+6. Detalhes da Tarefa (REDESENHADO - layout profissional)
 7. Redirecionamento pós-login
 
 Arquivo: tarefas/views.py
+Data: 24/10/2025
 """
 
 from datetime import date, timedelta
@@ -24,12 +29,89 @@ import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Count, Case, When
+from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from tarefas.models import Tarefa
+from tarefas.parametros import ParametrosAnalise
 
 User = get_user_model()
+
+
+# ============================================
+# HELPER: INFORMAÇÕES DE REGRAS
+# ============================================
+def get_regras_info():
+    """
+    Retorna informações detalhadas sobre todas as regras de criticidade.
+    Usado para exibir cards informativos nos dashboards.
+    """
+    # Buscar parâmetros atuais
+    try:
+        params = ParametrosAnalise.get_configuracao_ativa()
+    except:
+        params = None
+    
+    return {
+        'REGRA 1': {
+            'numero': 'REGRA 1',
+            'nome': 'Exigência Cumprida - Aguardando Análise',
+            'descricao': 'Servidor cadastrou exigência que foi cumprida pelo segurado. Aguardando análise dos documentos.',
+            'prazo': f"{params.prazo_analise_exigencia_cumprida if params else 7} dias após cumprimento",
+            'badge_class': 'bg-info',
+            'icon': 'fas fa-file-check',
+            'exemplo': 'Status: Pendente + Exigência cumprida (após atribuição)'
+        },
+        'REGRA 2': {
+            'numero': 'REGRA 2',
+            'nome': 'Cumprimento de Exigência pelo Segurado',
+            'descricao': 'Segurado tem prazo para cumprir exigência. Após vencimento, servidor tem prazo para conclusão.',
+            'prazo': f"Prazo + {params.prazo_tolerancia_exigencia if params else 5} dias (tolerância) + {params.prazo_servidor_apos_vencimento if params else 7} dias (conclusão)",
+            'badge_class': 'bg-warning',
+            'icon': 'fas fa-hourglass-half',
+            'exemplo': 'Status: Cumprimento de exigência + Prazo definido'
+        },
+        'REGRA 3': {
+            'numero': 'REGRA 3',
+            'nome': 'Tarefa Nunca Trabalhada',
+            'descricao': 'Servidor puxou tarefa nova que nunca entrou em exigência. Tem prazo para primeira ação.',
+            'prazo': f"{params.prazo_primeira_acao if params else 10} dias após puxar tarefa",
+            'badge_class': 'bg-primary',
+            'icon': 'fas fa-play-circle',
+            'exemplo': 'Status: Pendente + Nunca entrou em exigência'
+        },
+        'REGRA 4': {
+            'numero': 'REGRA 4',
+            'nome': 'Exigência Cumprida Anterior',
+            'descricao': 'Servidor puxou tarefa com exigência já cumprida (por outro servidor). Tem prazo para análise.',
+            'prazo': f"{params.prazo_primeira_acao if params else 10} dias após atribuição",
+            'badge_class': 'bg-success',
+            'icon': 'fas fa-history',
+            'exemplo': 'Status: Pendente + Exigência cumprida (antes da atribuição)'
+        }
+    }
+
+
+def get_regras_resumo_servidor(tarefas_servidor):
+    """
+    Calcula resumo de tarefas por regra para um servidor específico.
+    Usado para exibir cards de regras nos detalhes do servidor.
+    """
+    regras_info = get_regras_info()
+    resumo = {}
+    
+    for regra_key, info in regras_info.items():
+        count = tarefas_servidor.filter(regra_aplicada_calculado=regra_key).count()
+        resumo[regra_key] = {
+            'nome': info['nome'],
+            'descricao': info['descricao'],
+            'prazo': info['prazo'],
+            'count': count,
+            'badge_class': info['badge_class'],
+            'icon': info['icon']
+        }
+    
+    return resumo
 
 
 # ============================================
@@ -52,37 +134,37 @@ def redirect_after_login(request):
     
     # Verificar se é servidor
     elif user.groups.filter(name='Servidor').exists():
-        # Redirecionar para página de detalhes do próprio servidor
         return redirect('tarefas:detalhe_servidor', siape=user.siape)
     
-    # Outros usuários (admin, etc) → página inicial
+    # Outros usuários
     else:
         return redirect('/')
 
 
 # ============================================
-# DASHBOARD COORDENADOR (LIMPO - SÓ KPIs + GRÁFICOS)
+# DASHBOARD COORDENADOR (EXPANDIDO)
 # ============================================
 @login_required
 def dashboard_coordenador(request):
     """
-    Dashboard do coordenador - VERSÃO LIMPA E OTIMIZADA
+    Dashboard do coordenador - VERSÃO EXPANDIDA v3.0
     
-    Exibe apenas:
+    Exibe:
     - 6 KPIs de criticidade
-    - 2 Gráficos Chart.js
-    - 2 Botões de ação (Ver Tarefas / Ver Servidores)
+    - 3 Gráficos Chart.js (Criticidade, Status, Regras)
+    - 4 Cards de regras com contadores
+    - 2 Botões de ação
     
-    ✅ OTIMIZAÇÃO: Usa estatisticas_criticidade() com SQL aggregate
+    ✅ OTIMIZAÇÃO: SQL aggregate
     """
     
     # Buscar todas as tarefas
     tarefas = Tarefa.objects.select_related('siape_responsavel').all()
     
-    # Calcular estatísticas (OTIMIZADO: SQL aggregate)
+    # Calcular estatísticas (OTIMIZADO)
     stats = Tarefa.estatisticas_criticidade(tarefas)
     
-    # Montar KPIs gerais
+    # KPIs gerais
     kpis_gerais = {
         'total': stats['total'],
         'criticas': stats['CRÍTICA'],
@@ -95,48 +177,63 @@ def dashboard_coordenador(request):
         'percentual_altas': round(stats.get('percentual_ALTA', 0), 1),
         'percentual_medias': round(stats.get('percentual_MÉDIA', 0), 1),
         'percentual_com_criticidade': round(
-            (stats['com_criticidade'] / stats['total'] * 100) if stats['total'] > 0 else 0,
-            1
+            (stats['com_criticidade'] / stats['total'] * 100) if stats['total'] > 0 else 0, 1
         ),
     }
     
-    # Contadores por status (para gráfico)
+    # Contadores por status
     status_counts = {
         'pendentes': tarefas.filter(status_tarefa='Pendente').count(),
         'cumprimento': tarefas.filter(status_tarefa='Cumprimento de exigência').count(),
-        'outros': tarefas.exclude(
-            status_tarefa__in=['Pendente', 'Cumprimento de exigência']
-        ).count(),
+        'outros': tarefas.exclude(status_tarefa__in=['Pendente', 'Cumprimento de exigência']).count(),
     }
     
-    # Dados para gráficos Chart.js
+    # ✅ NOVO: Resumo por regras
+    regras_info = get_regras_info()
+    regras_resumo = {}
+    for regra_key, info in regras_info.items():
+        count = tarefas.filter(regra_aplicada_calculado=regra_key).count()
+        regras_resumo[regra_key] = {
+            'nome': info['nome'],
+            'descricao': info['descricao'],
+            'prazo': info['prazo'],
+            'count': count,
+            'badge_class': info['badge_class'],
+            'icon': info['icon']
+        }
+    
+    # Gráficos
     grafico_criticidade = {
         'labels': json.dumps(['Críticas', 'Altas', 'Médias', 'Baixas', 'Normais']),
-        'data': json.dumps([
-            stats['CRÍTICA'],
-            stats['ALTA'],
-            stats['MÉDIA'],
-            stats['BAIXA'],
-            stats['NENHUMA']
-        ]),
+        'data': json.dumps([stats['CRÍTICA'], stats['ALTA'], stats['MÉDIA'], stats['BAIXA'], stats['NENHUMA']]),
         'colors': json.dumps(['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#6c757d'])
     }
     
     grafico_status = {
         'labels': json.dumps(['Pendente', 'Cumprimento', 'Outros']),
-        'data': json.dumps([
-            status_counts['pendentes'],
-            status_counts['cumprimento'],
-            status_counts['outros']
-        ]),
+        'data': json.dumps([status_counts['pendentes'], status_counts['cumprimento'], status_counts['outros']]),
         'colors': json.dumps(['#ffc107', '#17a2b8', '#6c757d'])
+    }
+    
+    # ✅ NOVO: Gráfico de regras
+    grafico_regras = {
+        'labels': json.dumps(['Regra 1', 'Regra 2', 'Regra 3', 'Regra 4']),
+        'data': json.dumps([
+            regras_resumo['REGRA 1']['count'],
+            regras_resumo['REGRA 2']['count'],
+            regras_resumo['REGRA 3']['count'],
+            regras_resumo['REGRA 4']['count'],
+        ]),
+        'colors': json.dumps(['#17a2b8', '#ffc107', '#007bff', '#28a745'])
     }
     
     context = {
         'kpis_gerais': kpis_gerais,
         'status_counts': status_counts,
+        'regras_resumo': regras_resumo,
         'grafico_criticidade': grafico_criticidade,
         'grafico_status': grafico_status,
+        'grafico_regras': grafico_regras,
         'data_atualizacao': date.today(),
     }
     
@@ -144,51 +241,35 @@ def dashboard_coordenador(request):
 
 
 # ============================================
-# LISTA DE TAREFAS (COM FILTROS OTIMIZADOS)
+# LISTA DE TAREFAS
 # ============================================
 @login_required
 def lista_tarefas(request):
     """
-    Lista completa de tarefas com filtros avançados OTIMIZADOS.
+    Lista completa de tarefas com filtros OTIMIZADOS.
     
-    ✅ OTIMIZAÇÕES APLICADAS:
-    - Filtro por criticidade usa campo calculado (SQL)
-    - Ordenação usa índice do banco (pontuacao_criticidade)
-    - Sem loop Python, apenas SQL
-    
-    Filtros disponíveis:
-    - Protocolo (busca)
-    - Nível de criticidade (OTIMIZADO)
-    - Status
-    - Servidor (SIAPE ou nome)
-    - Serviço
-    - Data de distribuição (intervalo)
+    ✅ v3.0:
+    - Alertas clicáveis
+    - Protocolos clicáveis (INSS)
+    - Descrição na tabela
     """
     
-    # Buscar todas as tarefas
+    # Buscar tarefas
     tarefas = Tarefa.objects.select_related('siape_responsavel').all()
     
-    # ============================================
-    # APLICAR FILTROS
-    # ============================================
-    
-    # Filtro: Protocolo (busca parcial)
+    # Filtros
     protocolo = request.GET.get('protocolo', '').strip()
     if protocolo:
         tarefas = tarefas.filter(numero_protocolo_tarefa__icontains=protocolo)
     
-    # Filtro: Nível de criticidade
-    # ✅ OTIMIZADO: Usa campo calculado (SQL direto, sem loop!)
     nivel = request.GET.get('nivel', '')
     if nivel:
         tarefas = tarefas.filter(nivel_criticidade_calculado=nivel)
     
-    # Filtro: Status
     status = request.GET.get('status', '')
     if status:
         tarefas = tarefas.filter(status_tarefa=status)
     
-    # Filtro: Servidor (SIAPE ou nome)
     servidor = request.GET.get('servidor', '').strip()
     if servidor:
         tarefas = tarefas.filter(
@@ -196,61 +277,42 @@ def lista_tarefas(request):
             Q(nome_profissional_responsavel__icontains=servidor)
         )
     
-    # Filtro: Serviço
     servico = request.GET.get('servico', '').strip()
     if servico:
         tarefas = tarefas.filter(nome_servico__icontains=servico)
     
-    # Filtro: Data inicial
     data_inicio = request.GET.get('data_inicio', '')
     if data_inicio:
         tarefas = tarefas.filter(data_distribuicao_tarefa__gte=data_inicio)
     
-    # Filtro: Data final
     data_fim = request.GET.get('data_fim', '')
     if data_fim:
         tarefas = tarefas.filter(data_distribuicao_tarefa__lte=data_fim)
     
-    # ============================================
-    # ORDENAÇÃO (OTIMIZADA)
-    # ============================================
-    ordem = request.GET.get('ordem', 'criticidade')
+    # Ordenação
+    tarefas = tarefas.order_by('-pontuacao_criticidade', '-tempo_em_pendencia_em_dias')
     
-    if ordem == 'criticidade':
-        # ✅ OTIMIZADO: Usa índice do banco (pontuacao_criticidade)!
-        # 600x mais rápido que sort Python!
-        tarefas = tarefas.order_by('-pontuacao_criticidade', '-tempo_em_pendencia_em_dias')
-    elif ordem == 'protocolo':
-        tarefas = tarefas.order_by('numero_protocolo_tarefa')
-    elif ordem == 'data':
-        tarefas = tarefas.order_by('-data_distribuicao_tarefa')
+    # Estatísticas
+    stats = Tarefa.estatisticas_criticidade(tarefas)
     
-    # ============================================
-    # PAGINAÇÃO
-    # ============================================
-    paginator = Paginator(tarefas, 50)  # 50 tarefas por página
+    kpis = {
+        'total': stats['total'],
+        'criticas': stats['CRÍTICA'],
+        'altas': stats['ALTA'],
+        'medias': stats['MÉDIA'],
+        'baixas': stats['BAIXA'],
+        'normais': stats['NENHUMA'],
+        'com_criticidade': stats['com_criticidade'],
+    }
+    
+    # Paginação
+    paginator = Paginator(tarefas, 50)
     page_number = request.GET.get('page')
     tarefas_paginadas = paginator.get_page(page_number)
     
-    # ============================================
-    # ESTATÍSTICAS DA BUSCA (OTIMIZADO)
-    # ============================================
-    stats_busca = Tarefa.estatisticas_criticidade(tarefas)
-    
-    # ============================================
-    # OPÇÕES PARA FILTROS (DROPDOWNS)
-    # ============================================
-    # Status únicos
-    status_opcoes = Tarefa.objects.values_list('status_tarefa', flat=True).distinct()
-    
-    # Serviços únicos
-    servicos_opcoes = Tarefa.objects.values_list('nome_servico', flat=True).distinct()[:50]
-    
     context = {
         'tarefas': tarefas_paginadas,
-        'stats_busca': stats_busca,
-        'status_opcoes': status_opcoes,
-        'servicos_opcoes': servicos_opcoes,
+        'kpis': kpis,
         'filtros_ativos': {
             'protocolo': protocolo,
             'nivel': nivel,
@@ -259,69 +321,46 @@ def lista_tarefas(request):
             'servico': servico,
             'data_inicio': data_inicio,
             'data_fim': data_fim,
-            'ordem': ordem,
         },
+        'niveis_disponiveis': ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA', 'NENHUMA'],
+        'status_disponiveis': Tarefa.objects.values_list('status_tarefa', flat=True).distinct(),
     }
     
     return render(request, 'tarefas/lista_tarefas.html', context)
 
 
 # ============================================
-# LISTA DE SERVIDORES (COM FILTROS)
+# LISTA DE SERVIDORES
 # ============================================
 @login_required
 def lista_servidores(request):
-    """
-    Lista de servidores com estatísticas de criticidade.
+    """Lista de servidores com resumo."""
     
-    ✅ OTIMIZADO: Usa estatisticas_criticidade() com SQL aggregate
+    # Buscar servidores com tarefas
+    servidores_com_tarefas = Tarefa.objects.values('siape_responsavel').distinct().exclude(siape_responsavel__isnull=True)
+    siapes = [s['siape_responsavel'] for s in servidores_com_tarefas]
+    servidores = User.objects.filter(siape__in=siapes)
     
-    Filtros:
-    - Nome do servidor
-    - SIAPE
-    - GEX
-    - Ordenação por criticidade
-    """
-    
-    # Buscar todos os servidores ativos
-    servidores = User.objects.filter(
-        groups__name='Servidor',
-        is_active=True
-    ).distinct()
-    
-    # ============================================
-    # APLICAR FILTROS
-    # ============================================
-    
-    # Filtro: Nome
+    # Filtros
     nome = request.GET.get('nome', '').strip()
     if nome:
         servidores = servidores.filter(nome_completo__icontains=nome)
     
-    # Filtro: SIAPE
-    siape = request.GET.get('siape', '').strip()
-    if siape:
-        servidores = servidores.filter(siape__icontains=siape)
+    siape_filtro = request.GET.get('siape', '').strip()
+    if siape_filtro:
+        servidores = servidores.filter(siape__icontains=siape_filtro)
     
-    # Filtro: GEX
     gex = request.GET.get('gex', '').strip()
     if gex:
         servidores = servidores.filter(gex__icontains=gex)
     
-    # ============================================
-    # CALCULAR ESTATÍSTICAS PARA CADA SERVIDOR
-    # ✅ OTIMIZADO: SQL aggregate para cada servidor
-    # ============================================
-    servidores_com_stats = []
-    
+    # Montar lista com stats
+    lista_servidores = []
     for servidor in servidores:
-        # Tarefas do servidor
         tarefas_servidor = Tarefa.objects.filter(siape_responsavel=servidor)
-        
-        # Estatísticas (OTIMIZADO: SQL aggregate)
         stats = Tarefa.estatisticas_criticidade(tarefas_servidor)
         
-        servidores_com_stats.append({
+        lista_servidores.append({
             'servidor': servidor,
             'total': stats['total'],
             'criticas': stats['CRÍTICA'],
@@ -329,84 +368,61 @@ def lista_servidores(request):
             'medias': stats['MÉDIA'],
             'baixas': stats['BAIXA'],
             'normais': stats['NENHUMA'],
-            'percentual_criticas': stats.get('percentual_CRÍTICA', 0),
         })
     
-    # ============================================
-    # ORDENAÇÃO
-    # ============================================
+    # Ordenação
     ordem = request.GET.get('ordem', 'criticas')
-    
     if ordem == 'criticas':
-        servidores_com_stats.sort(key=lambda x: (x['criticas'], x['altas'], x['medias']), reverse=True)
+        lista_servidores.sort(key=lambda x: x['criticas'], reverse=True)
     elif ordem == 'total':
-        servidores_com_stats.sort(key=lambda x: x['total'], reverse=True)
+        lista_servidores.sort(key=lambda x: x['total'], reverse=True)
     elif ordem == 'nome':
-        servidores_com_stats.sort(key=lambda x: x['servidor'].nome_completo)
+        lista_servidores.sort(key=lambda x: x['servidor'].nome_completo)
     
-    # ============================================
-    # PAGINAÇÃO
-    # ============================================
-    paginator = Paginator(servidores_com_stats, 30)  # 30 servidores por página
+    # Paginação
+    paginator = Paginator(lista_servidores, 20)
     page_number = request.GET.get('page')
     servidores_paginados = paginator.get_page(page_number)
     
-    # ============================================
-    # ESTATÍSTICAS GERAIS
-    # ============================================
-    total_servidores = len(servidores_com_stats)
-    total_criticas = sum(s['criticas'] for s in servidores_com_stats)
-    total_altas = sum(s['altas'] for s in servidores_com_stats)
+    # Stats gerais
+    total_servidores = len(lista_servidores)
+    total_criticas = sum(s['criticas'] for s in lista_servidores)
+    total_altas = sum(s['altas'] for s in lista_servidores)
     
     context = {
         'servidores': servidores_paginados,
+        'filtros_ativos': {'nome': nome, 'siape': siape_filtro, 'gex': gex, 'ordem': ordem},
         'total_servidores': total_servidores,
         'total_criticas': total_criticas,
         'total_altas': total_altas,
-        'filtros_ativos': {
-            'nome': nome,
-            'siape': siape,
-            'gex': gex,
-            'ordem': ordem,
-        },
     }
     
     return render(request, 'tarefas/lista_servidores.html', context)
 
 
 # ============================================
-# DETALHES DO SERVIDOR (OTIMIZADO)
+# DETALHES DO SERVIDOR
 # ============================================
 @login_required
 def detalhe_servidor(request, siape):
     """
-    Página de detalhes de um servidor específico - VERSÃO OTIMIZADA
+    Detalhes do servidor COM CARDS DE REGRAS.
     
-    ✅ OTIMIZAÇÕES:
-    - Usa order_by do banco (pontuacao_criticidade)
-    - Não carrega todas as tarefas na memória
-    - SQL aggregate para estatísticas
-    
-    Mostra:
-    - KPIs do servidor
-    - Gráficos
-    - Top 10 tarefas prioritárias
-    - Resumo por serviço
-    - Lista completa de tarefas
+    ✅ v3.0: Cards de regras, links clicáveis
     """
     
     # Buscar servidor
     servidor = get_object_or_404(User, siape=siape)
     
-    # Buscar tarefas do servidor
-    tarefas = Tarefa.objects.filter(
-        siape_responsavel=servidor
-    ).select_related('siape_responsavel')
+    # Tarefas do servidor
+    tarefas = Tarefa.objects.filter(siape_responsavel=servidor)
     
-    # Calcular estatísticas (OTIMIZADO: SQL aggregate)
+    # ✅ NOVO: Resumo por regras
+    regras_resumo = get_regras_resumo_servidor(tarefas)
+    
+    # Stats
     stats = Tarefa.estatisticas_criticidade(tarefas)
     
-    # KPIs
     kpis = {
         'total': stats['total'],
         'criticas': stats['CRÍTICA'],
@@ -414,62 +430,39 @@ def detalhe_servidor(request, siape):
         'medias': stats['MÉDIA'],
         'baixas': stats['BAIXA'],
         'normais': stats['NENHUMA'],
-        'percentual_criticas': round(stats.get('percentual_CRÍTICA', 0), 1),
-        'percentual_altas': round(stats.get('percentual_ALTA', 0), 1),
-        'percentual_medias': round(stats.get('percentual_MÉDIA', 0), 1),
     }
     
-    # ✅ OTIMIZADO: Tarefas prioritárias (top 10)
-    # Usa order_by do banco em vez de sort Python!
+    # Top 10 prioritárias
     tarefas_prioritarias = tarefas.filter(
-        nivel_criticidade_calculado__in=['CRÍTICA', 'ALTA']
-    ).order_by('-pontuacao_criticidade', '-tempo_em_pendencia_em_dias')[:10]
+        nivel_criticidade_calculado__in=['CRÍTICA', 'ALTA', 'MÉDIA']
+    ).order_by('-pontuacao_criticidade')[:10]
     
     # Resumo por serviço
-    # ⚠️ Este loop pode ser otimizado com annotate, mas é aceitável
-    # pois processa apenas tarefas de 1 servidor
-    servicos_stats = {}
-    for tarefa in tarefas:
-        servico = tarefa.nome_servico or 'Sem Serviço'
-        if servico not in servicos_stats:
-            servicos_stats[servico] = {
-                'nome': servico,
-                'total': 0,
-                'criticas': 0,
-                'altas': 0,
-                'medias': 0,
-            }
-        servicos_stats[servico]['total'] += 1
-        nivel = tarefa.nivel_criticidade
-        if nivel == 'CRÍTICA':
-            servicos_stats[servico]['criticas'] += 1
-        elif nivel == 'ALTA':
-            servicos_stats[servico]['altas'] += 1
-        elif nivel == 'MÉDIA':
-            servicos_stats[servico]['medias'] += 1
+    servicos = tarefas.values('nome_servico').annotate(total=Count('numero_protocolo_tarefa')).order_by('-total')[:10]
     
-    servicos_resumo = list(servicos_stats.values())
-    servicos_resumo.sort(key=lambda x: x['total'], reverse=True)
-    servicos_resumo = servicos_resumo[:10]
+    servicos_resumo = []
+    for servico in servicos:
+        tarefas_servico = tarefas.filter(nome_servico=servico['nome_servico'])
+        stats_servico = Tarefa.estatisticas_criticidade(tarefas_servico)
+        servicos_resumo.append({
+            'nome': servico['nome_servico'],
+            'total': stats_servico['total'],
+            'criticas': stats_servico['CRÍTICA'],
+            'altas': stats_servico['ALTA'],
+            'medias': stats_servico['MÉDIA'],
+        })
     
-    # Gráfico de criticidade
+    # Gráfico
     grafico_criticidade = {
         'labels': json.dumps(['Críticas', 'Altas', 'Médias', 'Baixas', 'Normais']),
-        'data': json.dumps([
-            stats['CRÍTICA'],
-            stats['ALTA'],
-            stats['MÉDIA'],
-            stats['BAIXA'],
-            stats['NENHUMA']
-        ]),
+        'data': json.dumps([stats['CRÍTICA'], stats['ALTA'], stats['MÉDIA'], stats['BAIXA'], stats['NENHUMA']]),
         'colors': json.dumps(['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#6c757d'])
     }
     
-    # ✅ OTIMIZADO: Lista completa ordenada por criticidade
-    # Usa order_by do banco!
+    # Lista completa
     tarefas_ordenadas = tarefas.order_by('-pontuacao_criticidade', '-tempo_em_pendencia_em_dias')
     
-    # Paginação da lista completa
+    # Paginação
     paginator = Paginator(tarefas_ordenadas, 50)
     page_number = request.GET.get('page')
     tarefas_paginadas = paginator.get_page(page_number)
@@ -477,6 +470,7 @@ def detalhe_servidor(request, siape):
     context = {
         'servidor': servidor,
         'kpis': kpis,
+        'regras_resumo': regras_resumo,
         'tarefas_prioritarias': tarefas_prioritarias,
         'servicos_resumo': servicos_resumo,
         'grafico_criticidade': grafico_criticidade,
@@ -488,29 +482,20 @@ def detalhe_servidor(request, siape):
 
 
 # ============================================
-# DETALHES DA TAREFA (COMPLETO)
+# DETALHES DA TAREFA (REDESENHADO)
 # ============================================
 @login_required
 def detalhe_tarefa(request, protocolo):
     """
-    Exibe detalhes completos de uma tarefa, incluindo:
-    - Informações básicas
-    - Todas as datas relevantes
-    - Explicação detalhada do cálculo de criticidade
-    - Regra aplicada com descrição
-    - Parâmetros utilizados
+    Detalhes completos da tarefa - REDESENHADO v3.0
     
-    ✅ USA PROPERTIES: Funcionam com campos calculados (otimizados)
-    
-    Args:
-        request: HttpRequest
-        protocolo: Número do protocolo da tarefa
+    ✅ Layout profissional com todas informações
     """
     
     # Buscar tarefa
     tarefa = get_object_or_404(Tarefa, numero_protocolo_tarefa=protocolo)
     
-    # Informações básicas da tarefa
+    # Info básica
     info_basica = {
         'protocolo': tarefa.numero_protocolo_tarefa,
         'servico': tarefa.nome_servico,
@@ -520,7 +505,7 @@ def detalhe_tarefa(request, protocolo):
         'gex': tarefa.nome_gex_responsavel or 'N/A',
     }
     
-    # Todas as datas (para a tabela)
+    # Datas
     datas = {
         'distribuicao': tarefa.data_distribuicao_tarefa,
         'ultima_atualizacao': tarefa.data_ultima_atualizacao,
@@ -540,97 +525,68 @@ def detalhe_tarefa(request, protocolo):
         'com_servidor': tarefa.dias_com_servidor,
     }
     
-    # Informações de criticidade
+    # Criticidade (COMPLETA)
     criticidade = {
-        'nivel': tarefa.nivel_criticidade,
-        'regra': tarefa.regra_aplicada,
-        'alerta': tarefa.alerta_criticidade,
-        'descricao': tarefa.descricao_criticidade,
-        'dias_pendente': tarefa.dias_pendente_criticidade,
-        'prazo_limite': tarefa.prazo_limite_criticidade,
-        'cor': tarefa.cor_criticidade,
+        'nivel': tarefa.nivel_criticidade_calculado,
+        'regra': tarefa.regra_aplicada_calculado,
+        'alerta': tarefa.alerta_criticidade_calculado,
+        'descricao': tarefa.descricao_criticidade_calculado,
+        'dias_pendente': tarefa.dias_pendente_criticidade_calculado,
+        'prazo_limite': tarefa.prazo_limite_criticidade_calculado,
+        'cor': tarefa.cor_criticidade_calculado,
         'emoji': tarefa.emoji_criticidade,
-        'pontuacao': tarefa.pontuacao_criticidade if hasattr(tarefa, 'pontuacao_criticidade') else 0,
+        'pontuacao': tarefa.pontuacao_criticidade,
     }
     
-    # Descrição detalhada das regras
-    descricoes_regras = {
-        'REGRA 1': {
-            'nome': 'Exigência Cumprida pelo Servidor - Aguardando Análise',
-            'descricao': 'Quando um servidor cadastra uma exigência e o segurado a cumpre, o servidor tem um prazo para analisar os documentos apresentados.',
-            'condicoes': [
-                'Status = "Pendente"',
-                'Descrição = "Exigência cumprida"',
-                'Servidor cadastrou a exigência (data início >= data atribuição)',
-                'Exigência foi cumprida (data fim preenchida)',
-            ],
-            'prazo': '7 dias após o cumprimento da exigência',
-            'calculo': 'dias_desde_cumprimento = HOJE - data_fim_ultima_exigencia',
-            'classificacao': [
-                '≤ 7 dias = BAIXA (Aguardando análise)',
-                '> 7 dias = ALTA (Prazo excedido)',
-            ],
-        },
-        'REGRA 2': {
-            'nome': 'Cumprimento de Exigência pelo Segurado',
-            'descricao': 'Quando um servidor cadastra uma exigência, o segurado tem 30 dias para apresentar os documentos, mais 5 dias de tolerância. Após vencimento sem cumprimento, servidor tem 7 dias para concluir.',
-            'condicoes': [
-                'Status = "Cumprimento de exigência"',
-                'Descrição = "Em cumprimento de exigência"',
-                'Data prazo preenchida',
-            ],
-            'prazo': 'Data do prazo + 5 dias (tolerância) + 7 dias (conclusão)',
-            'calculo': 'dias_apos_prazo = HOJE - (data_prazo + 5 dias)',
-            'classificacao': [
-                'Dentro do prazo = NENHUMA',
-                '0-7 dias após prazo = MÉDIA (Servidor deve concluir)',
-                '> 7 dias após prazo = CRÍTICA (Ambos prazos vencidos)',
-            ],
-        },
-        'REGRA 3': {
-            'nome': 'Tarefa Nunca Trabalhada (Puxada sem Ação)',
-            'descricao': 'Quando um servidor puxa uma tarefa nova (que nunca entrou em exigência), ele tem um prazo inicial para começar a trabalhar.',
-            'condicoes': [
-                'Status = "Pendente"',
-                'Descrição = "Nunca entrou em exigência"',
-                'Não tem data de início de exigência',
-            ],
-            'prazo': '10 dias após puxar a tarefa',
-            'calculo': 'dias_com_servidor = tempo_em_pendencia - tempo_ate_ultima_distribuicao',
-            'classificacao': [
-                '≤ 10 dias = NENHUMA (Dentro do prazo inicial)',
-                '> 10 dias = ALTA (Sem nenhuma ação)',
-            ],
-        },
-        'REGRA 4': {
-            'nome': 'Exigência Cumprida Antes da Atribuição',
-            'descricao': 'Quando um servidor puxa uma tarefa que já estava com exigência cumprida (cumprida por outro servidor ou antes da distribuição). O servidor tem prazo para analisar os documentos já apresentados.',
-            'condicoes': [
-                'Status = "Pendente"',
-                'Descrição = "Exigência cumprida"',
-                'Exigência anterior à atribuição (data fim < data atribuição)',
-            ],
-            'prazo': '10 dias após atribuição para análise',
-            'calculo': 'dias_com_servidor = tempo_em_pendencia - tempo_ate_ultima_distribuicao',
-            'classificacao': [
-                '≤ 10 dias = NENHUMA (Dentro do prazo de análise)',
-                '> 10 dias = ALTA (Sem análise)',
-            ],
-        },
-        'NENHUMA': {
-            'nome': 'Sem Classificação de Criticidade',
-            'descricao': 'Esta tarefa não se enquadra em nenhuma das regras de criticidade definidas.',
-            'condicoes': ['Não atende aos critérios das regras 1, 2, 3 ou 4'],
-            'prazo': 'N/A',
-            'calculo': 'N/A',
-            'classificacao': ['NENHUMA'],
-        },
-    }
+    # Info da regra
+    regras_info = get_regras_info()
+    regra_info = regras_info.get(criticidade['regra'], {
+        'nome': 'Sem classificação',
+        'descricao': 'Não se enquadra em nenhuma regra.',
+        'prazo': 'N/A',
+        'condicoes': [],
+        'calculo': 'N/A',
+        'classificacao': [],
+    })
     
-    # Pegar descrição da regra aplicada
-    regra_info = descricoes_regras.get(criticidade['regra'], descricoes_regras['NENHUMA'])
+    # Adicionar detalhes específicos da regra
+    if criticidade['regra'] == 'REGRA 1':
+        regra_info['condicoes'] = [
+            'Status = "Pendente"',
+            'Descrição = "Exigência cumprida"',
+            'Servidor cadastrou a exigência',
+            'Exigência foi cumprida',
+        ]
+        regra_info['calculo'] = f'dias_desde_cumprimento = HOJE - {tarefa.data_fim_ultima_exigencia.strftime("%d/%m/%Y") if tarefa.data_fim_ultima_exigencia else "N/A"}'
+        regra_info['classificacao'] = ['≤ 7 dias = BAIXA', '> 7 dias = ALTA']
+        
+    elif criticidade['regra'] == 'REGRA 2':
+        regra_info['condicoes'] = [
+            'Status = "Cumprimento de exigência"',
+            'Descrição = "Em cumprimento"',
+            f'Data prazo: {tarefa.data_prazo.strftime("%d/%m/%Y") if tarefa.data_prazo else "N/A"}',
+        ]
+        regra_info['calculo'] = f'dias_apos_prazo = HOJE - ({tarefa.data_prazo.strftime("%d/%m/%Y") if tarefa.data_prazo else "N/A"} + 5 dias)'
+        regra_info['classificacao'] = ['Dentro = NENHUMA', '0-7 dias = MÉDIA', '> 7 dias = CRÍTICA']
+        
+    elif criticidade['regra'] == 'REGRA 3':
+        regra_info['condicoes'] = [
+            'Status = "Pendente"',
+            'Nunca entrou em exigência',
+            'Sem data de início',
+        ]
+        regra_info['calculo'] = f'dias_com_servidor = {tarefa.tempo_em_pendencia_em_dias} - {tarefa.tempo_ate_ultima_distribuicao_tarefa_em_dias}'
+        regra_info['classificacao'] = ['≤ 10 dias = NENHUMA', '> 10 dias = ALTA']
+        
+    elif criticidade['regra'] == 'REGRA 4':
+        regra_info['condicoes'] = [
+            'Status = "Pendente"',
+            'Exigência cumprida anterior',
+            'Data fim < data atribuição',
+        ]
+        regra_info['calculo'] = f'dias_com_servidor = {tarefa.tempo_em_pendencia_em_dias} - {tarefa.tempo_ate_ultima_distribuicao_tarefa_em_dias}'
+        regra_info['classificacao'] = ['≤ 10 dias = NENHUMA', '> 10 dias = ALTA']
     
-    # Contexto para o template
     context = {
         'tarefa': tarefa,
         'info_basica': info_basica,
@@ -648,25 +604,16 @@ def detalhe_tarefa(request, protocolo):
 # ============================================
 @login_required
 def dashboard_servidor(request):
-    """
-    Dashboard do servidor - REDIRECIONA para página de detalhes.
-    
-    Mantido para compatibilidade com URLs antigas.
-    """
+    """Redireciona para detalhes do servidor."""
     return redirect('tarefas:detalhe_servidor', siape=request.user.siape)
 
 
 # ============================================
-# API JSON (OPCIONAL - PARA GRÁFICOS AJAX)
+# API JSON
 # ============================================
 @login_required
 def api_estatisticas_json(request):
-    """
-    Retorna estatísticas em JSON para uso em gráficos dinâmicos.
-    
-    ✅ OTIMIZADO: Usa SQL aggregate
-    """
+    """Retorna estatísticas em JSON."""
     tarefas = Tarefa.objects.all()
     stats = Tarefa.estatisticas_criticidade(tarefas)
-    
     return JsonResponse(stats)
