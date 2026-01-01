@@ -226,5 +226,5 @@ def health_check(request):
     """
     return Response({
         'status': 'ok',
-        'mensagem': 'API do Monitor de Filas está funcionando'
+        'mensagem': 'API do Sistema SIGA está funcionando'
     })
