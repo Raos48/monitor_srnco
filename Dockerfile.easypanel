@@ -1,0 +1,47 @@
+# ==========================================
+# Dockerfile Simplificado para Easypanel
+# Sistema SIGA - SRNCO
+# ==========================================
+
+FROM python:3.11-slim
+
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Instala dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Diretório de trabalho
+WORKDIR /app
+
+# Copia requirements e instala dependências Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia o código da aplicação
+COPY . .
+
+# Coleta arquivos estáticos
+RUN python manage.py collectstatic --noinput --clear || true
+
+# Expõe a porta
+EXPOSE 8000
+
+# Comando de inicialização
+CMD python manage.py migrate --noinput && \
+    gunicorn config.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 4 \
+    --threads 2 \
+    --worker-class gthread \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info \
+    --timeout 120
