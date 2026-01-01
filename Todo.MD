@@ -4,7 +4,7 @@
 -Funcionalidade para reportar ocorrencias.
 -Solicitar Ajuda.
 -Funcionalidade Limpeza de Caixas com ou sem transbordo.
--Funcionalidade 
+-Funcionalidade. 
 -Implementar contador tempo que a tarefa está na fila do servidor.
 -Nova regra data da conclusão da sub prazo.
 -Indicador % tarefas com subtarefa no painel do coordenador.

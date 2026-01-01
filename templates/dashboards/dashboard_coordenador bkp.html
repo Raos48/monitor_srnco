@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Coordenador - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- ============================================
+         CABEÇALHO
+         ============================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-chart-line text-primary"></i>
+                Dashboard do Coordenador
+            </h1>
+            <p class="text-muted mb-0">
+                Visão geral do sistema - {{ data_atualizacao|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-sm" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================
+         KPIs DE CRITICIDADE
+         ============================================ -->
+    <div class="row g-3 mb-4">
+        <!-- Total -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #0e2238;">
+                <div class="kpi-icon text-primary">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.total|default:0 }}</div>
+                <div class="kpi-label">Total de Tarefas</div>
+            </div>
+        </div>
+
+        <!-- Críticas -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #dc3545;">
+                <div class="kpi-icon text-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.criticas|default:0 }}</div>
+                <div class="kpi-label">
+                    🔴 Críticas
+                    <span class="badge bg-danger ms-1">{{ kpis_gerais.percentual_criticas }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Altas -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #fd7e14;">
+                <div class="kpi-icon" style="color: #fd7e14;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.altas|default:0 }}</div>
+                <div class="kpi-label">
+                    🟠 Altas
+                    <span class="badge bg-warning text-dark ms-1">{{ kpis_gerais.percentual_altas }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Médias -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
+                <div class="kpi-icon" style="color: #f39c12;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.medias|default:0 }}</div>
+                <div class="kpi-label">
+                    🟡 Médias
+                    <span class="badge" style="background-color: #ffc107; color: black;">{{ kpis_gerais.percentual_medias }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Com Criticidade -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #9c27b0;">
+                <div class="kpi-icon" style="color: #9c27b0;">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.com_criticidade|default:0 }}</div>
+                <div class="kpi-label">
+                    Requerem Atenção
+                    <span class="badge" style="background-color: #9c27b0; color: white;">{{ kpis_gerais.percentual_com_criticidade }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Normais -->
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #28a745;">
+                <div class="kpi-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="kpi-value">{{ kpis_gerais.normais|default:0 }}</div>
+                <div class="kpi-label">⚪ Normais</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta de Críticas -->
+    {% if kpis_gerais.criticas > 0 %}
+    <div class="alert alert-danger mb-4">
+        <h5>
+            <i class="fas fa-exclamation-circle"></i> 
+            <strong>{{ kpis_gerais.criticas }}</strong> tarefas CRÍTICAS na unidade!
+        </h5>
+        <p class="mb-0">
+            Essas tarefas ultrapassaram severamente os prazos estabelecidos.
+            <a href="{% url 'tarefas:lista_tarefas' %}?nivel=CRÍTICA" class="alert-link">
+                Ver lista completa →
+            </a>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- ============================================
+         CARDS DE REGRAS (NOVO)
+         ============================================ -->
+    <div class="mb-3">
+        <h3><i class="fas fa-info-circle text-primary"></i> Resumo por Regras de Criticidade</h3>
+        <p class="text-muted">Distribuição das tarefas por cada regra de análise</p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {% for regra, info in regras_resumo.items %}
+        <div class="col-md-6">
+            <div class="card h-100" style="border-left: 4px solid {% if info.badge_class == 'bg-info' %}#17a2b8{% elif info.badge_class == 'bg-warning' %}#ffc107{% elif info.badge_class == 'bg-primary' %}#007bff{% else %}#28a745{% endif %};">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <i class="{{ info.icon }} me-2"></i>
+                                {{ info.nome }}
+                            </h5>
+                            <span class="badge {{ info.badge_class }}">{{ regra }}</span>
+                        </div>
+                        <div class="text-end">
+                            <h2 class="mb-0" style="color: {% if info.badge_class == 'bg-info' %}#17a2b8{% elif info.badge_class == 'bg-warning' %}#ffc107{% elif info.badge_class == 'bg-primary' %}#007bff{% else %}#28a745{% endif %};">
+                                {{ info.count }}
+                            </h2>
+                            <small class="text-muted">tarefas</small>
+                        </div>
+                    </div>
+                    <p class="card-text mb-2"><small>{{ info.descricao|truncatewords:20 }}</small></p>
+                    <p class="mb-0"><small class="text-muted"><i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}</small></p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ============================================
+         GRÁFICOS CHART.JS
+         ============================================ -->
+    <div class="row g-3 mb-4">
+        <!-- Gráfico 1: Criticidade -->
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Criticidade
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-criticidade" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico 2: Status -->
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-bar"></i> Distribuição por Status
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-status" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico 3: Regras (NOVO) -->
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-line"></i> Tarefas por Regra
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-regras" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         BOTÕES DE AÇÃO
+         ============================================ -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <a href="{% url 'tarefas:lista_tarefas' %}" class="btn-action-card">
+                <div class="card-custom" style="cursor: pointer;">
+                    <div class="card-body-custom text-center py-4">
+                        <div style="font-size: 3rem; color: #0e2238; margin-bottom: 1rem;">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <h4 class="mb-2">Ver Todas as Tarefas</h4>
+                        <p class="text-muted mb-0">
+                            Lista completa com filtros avançados
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a href="{% url 'tarefas:lista_servidores' %}" class="btn-action-card">
+                <div class="card-custom" style="cursor: pointer;">
+                    <div class="card-body-custom text-center py-4">
+                        <div style="font-size: 3rem; color: #0e2238; margin-bottom: 1rem;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4 class="mb-2">Ver Todos os Servidores</h4>
+                        <p class="text-muted mb-0">
+                            Ranking e detalhes dos servidores
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Legenda -->
+    <div class="mt-3">
+        <small class="text-muted">
+            <strong>Legenda:</strong>
+            <span class="badge bg-danger ms-2">🔴 CRÍTICA</span>
+            <span class="badge bg-warning text-dark ms-2">🟠 ALTA</span>
+            <span class="badge bg-info text-dark ms-2">🟡 MÉDIA</span>
+            <span class="badge bg-success ms-2">🟢 BAIXA</span>
+            <span class="badge bg-secondary ms-2">⚪ NORMAL</span>
+        </small>
+    </div>
+
+</div>
+
+<!-- Estilo para botões de ação -->
+<style>
+.btn-action-card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.btn-action-card .card-custom {
+    transition: all 0.3s ease;
+}
+
+.btn-action-card .card-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico 1: Criticidade (Donut)
+    const ctxCriticidade = document.getElementById('grafico-criticidade').getContext('2d');
+    new Chart(ctxCriticidade, {
+        type: 'doughnut',
+        data: {
+            labels: {{ grafico_criticidade.labels|safe }},
+            datasets: [{
+                data: {{ grafico_criticidade.data|safe }},
+                backgroundColor: {{ grafico_criticidade.colors|safe }},
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico 2: Status (Bar)
+    const ctxStatus = document.getElementById('grafico-status').getContext('2d');
+    new Chart(ctxStatus, {
+        type: 'bar',
+        data: {
+            labels: {{ grafico_status.labels|safe }},
+            datasets: [{
+                label: 'Tarefas',
+                data: {{ grafico_status.data|safe }},
+                backgroundColor: {{ grafico_status.colors|safe }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico 3: Regras (Bar Horizontal)
+    const ctxRegras = document.getElementById('grafico-regras').getContext('2d');
+    new Chart(ctxRegras, {
+        type: 'bar',
+        data: {
+            labels: {{ grafico_regras.labels|safe }},
+            datasets: [{
+                label: 'Tarefas',
+                data: {{ grafico_regras.data|safe }},
+                backgroundColor: {{ grafico_regras.colors|safe }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

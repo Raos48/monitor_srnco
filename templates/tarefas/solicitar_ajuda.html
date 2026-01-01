@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Ajuda - {{ tarefa.numero_protocolo_tarefa }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Cabecalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-hands-helping"></i>
+                Solicitar Ajuda da Equipe Volante
+            </h1>
+            <p class="text-muted mb-0">Protocolo: {{ tarefa.numero_protocolo_tarefa }}</p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=tarefa.numero_protocolo_tarefa %}"
+               class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Coluna do Formulario -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Formulario de Solicitacao
+                    </h5>
+                </div>
+                <div class="card-body">
+
+                    <!-- Informacoes da Tarefa -->
+                    <div class="alert alert-primary mb-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle"></i> Informacoes da Tarefa
+                        </h6>
+                        <p class="mb-1">
+                            <strong>Servico:</strong> {{ tarefa.nome_servico }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Status:</strong> {{ tarefa.status_tarefa }}
+                        </p>
+                        {% if tarefa.tem_criticidade %}
+                        <p class="mb-0">
+                            <strong>Criticidade:</strong>
+                            <span class="badge bg-danger">{{ tarefa.nivel_criticidade }}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Formulario -->
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Descricao do Problema -->
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">
+                                {{ form.descricao.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.descricao }}
+                            <small class="form-text text-muted">
+                                {{ form.descricao.help_text }}
+                                <br>Minimo de 20 caracteres. Seja especifico sobre o problema e o tipo de ajuda necessaria.
+                            </small>
+                            {% if form.descricao.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.descricao.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Exemplos de situacoes -->
+                        <div class="alert alert-light mb-3">
+                            <h6 class="mb-2">
+                                <i class="fas fa-question-circle"></i> Exemplos de situacoes:
+                            </h6>
+                            <ul class="small mb-0">
+                                <li>Duvidas tecnicas sobre legislacao ou procedimentos</li>
+                                <li>Necessidade de orientacao para casos complexos</li>
+                                <li>Dificuldades com o sistema</li>
+                                <li>Suporte para tomada de decisao</li>
+                            </ul>
+                        </div>
+
+                        <!-- Botoes de Acao -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-paper-plane"></i> Enviar Solicitacao
+                            </button>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=tarefa.numero_protocolo_tarefa %}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Lateral - Orientacoes -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Como Funciona
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>O que e a Equipe Volante?</h6>
+                    <p class="small">
+                        A Equipe Volante e um time especializado que oferece suporte tecnico
+                        e orientacao para situacoes complexas ou que demandem auxilio extra.
+                    </p>
+
+                    <h6 class="mt-3">Processo de Atendimento:</h6>
+                    <ol class="small">
+                        <li>Voce envia a solicitacao com descricao do problema</li>
+                        <li>A Equipe Volante recebe a notificacao</li>
+                        <li>Um membro da equipe assume o atendimento</li>
+                        <li>Voce recebe orientacao e suporte direto</li>
+                        <li>A solicitacao e concluida quando resolvida</li>
+                    </ol>
+
+                    <div class="alert alert-warning small mt-3 mb-0">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Importante:</strong>
+                        <p class="mb-0">
+                            A solicitacao de ajuda nao substitui a justificativa.
+                            Se a tarefa esta critica e a situacao se enquadra em um motivo de
+                            justificativa, utilize tambem a opcao "Justificar Situacao".
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Beneficios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li>Orientacao especializada</li>
+                        <li>Agilidade na resolucao de duvidas</li>
+                        <li>Suporte para casos complexos</li>
+                        <li>Acompanhamento personalizado</li>
+                        <li>Registro formal da solicitacao</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

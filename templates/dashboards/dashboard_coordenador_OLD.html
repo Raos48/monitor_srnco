@@ -6,17 +6,15 @@
 {% block content %}
 <div class="container-fluid">
 
-    <!-- ============================================
-         CABEÇALHO DO DASHBOARD
-         ============================================ -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-1">
                 <i class="fas fa-chart-line text-primary"></i>
                 Dashboard do Coordenador
             </h1>
-            <p class="text-muted mb-0" style="font-size: 0.85rem;">
-                Visão geral e gerenciamento de tarefas
+            
+            <p class="text-muted mb-0">
+                Visão geral do sistema - {{ data_atualizacao|date:"d/m/Y" }}
             </p>
         </div>
         <div>
@@ -26,567 +24,398 @@
         </div>
     </div>
 
-    <!-- ============================================
-         SEÇÃO 1: KPIs PRINCIPAIS
-         ============================================ -->
     <div class="row g-3 mb-4">
-        <!-- KPI 1: Total de Tarefas -->
         <div class="col-md-3">
             <div class="kpi-card" style="border-left: 4px solid #0e2238;">
                 <div class="kpi-icon text-primary">
                     <i class="fas fa-tasks"></i>
                 </div>
-                <div class="kpi-value">{{ kpis.total_tarefas|default:0 }}</div>
+                <div class="kpi-value">{{ kpis_gerais.total|default:0 }}</div>
                 <div class="kpi-label">Total de Tarefas</div>
             </div>
         </div>
 
-        <!-- KPI 2: Tarefas com Alertas -->
         <div class="col-md-3">
             <div class="kpi-card" style="border-left: 4px solid #dc3545;">
                 <div class="kpi-icon text-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
+                    <i class="fas fa-exclamation-circle"></i>
                 </div>
-                <div class="kpi-value">{{ kpis.total_com_alertas|default:0 }}</div>
+                <div class="kpi-value">{{ kpis_gerais.criticas|default:0 }}</div>
                 <div class="kpi-label">
-                    Com Alertas
-                    <span class="badge bg-danger ms-1">{{ kpis.percentual_alertas }}%</span>
+                    ⛔ Críticas
+                    <span class="badge bg-danger ms-1">{{ kpis_gerais.percentual_criticas }}%</span>
                 </div>
             </div>
         </div>
 
-        <!-- KPI 3: Servidores Ativos -->
         <div class="col-md-3">
             <div class="kpi-card" style="border-left: 4px solid #28a745;">
                 <div class="kpi-icon text-success">
-                    <i class="fas fa-users"></i>
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="kpi-value">{{ kpis.total_servidores|default:0 }}</div>
-                <div class="kpi-label">Servidores Ativos</div>
+                <div class="kpi-value">{{ kpis_gerais.regulares|default:0 }}</div>
+                <div class="kpi-label">
+                    ✅ Regulares
+                    <span class="badge bg-success ms-1">{{ kpis_gerais.percentual_regulares }}%</span>
+                </div>
             </div>
         </div>
-
-        <!-- KPI 4: Tarefas Pendentes -->
-        <div class="col-md-3">
-            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
-                <div class="kpi-icon text-warning">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="kpi-value">{{ kpis.tarefas_pendentes|default:0 }}</div>
-                <div class="kpi-label">Tarefas Pendentes</div>
-            </div>
-        </div>
+        
     </div>
 
-    <!-- ============================================
-         SEÇÃO 2: INDICADORES DE ALERTAS
-         ============================================ -->
+    {% if kpis_gerais.criticas > 0 %}
+    <div class="alert alert-danger mb-4">
+        <h5>
+            <i class="fas fa-exclamation-circle"></i> 
+            <strong>{{ kpis_gerais.criticas }}</strong> tarefas CRÍTICAS na unidade!
+        </h5>
+        <p class="mb-0">
+            Essas tarefas ultrapassaram os prazos estabelecidos.
+            <a href="{% url 'tarefas:lista_tarefas' %}?nivel=CRÍTICA" class="alert-link">
+                Ver lista completa →
+            </a>
+        </p>
+    </div>
+    {% endif %}
+    
+
+    <div class="mb-3">
+        <h3><i class="fas fa-info-circle text-primary"></i> Resumo por Regras de Criticidade</h3>
+        <p class="text-muted">Distribuição das tarefas por cada regra de análise</p>
+    </div>
+    
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card-custom">
-                <div class="card-body-custom text-center" style="padding: 1rem;">
-                    <div style="font-size: 1.5rem; color: #ffc107; margin-bottom: 0.5rem;">
-                        <i class="fas fa-pause-circle"></i>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 600; color: #ffc107;">
-                        {{ kpis.alertas_tipo_1|default:0 }}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #6c757d;">
-                        Sem Movimentação (>10 dias)
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card-custom">
-                <div class="card-body-custom text-center" style="padding: 1rem;">
-                    <div style="font-size: 1.5rem; color: #dc3545; margin-bottom: 0.5rem;">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 600; color: #dc3545;">
-                        {{ kpis.alertas_tipo_2|default:0 }}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #6c757d;">
-                        Exigência Vencida (>42 dias)
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card-custom">
-                <div class="card-body-custom text-center" style="padding: 1rem;">
-                    <div style="font-size: 1.5rem; color: #3b7ddd; margin-bottom: 0.5rem;">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 600; color: #3b7ddd;">
-                        {{ kpis.alertas_tipo_3|default:0 }}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #6c757d;">
-                        Exigência Cumprida (>7 dias)
+        {% for regra, info in regras_resumo.items %}
+            
+        {% comment %} Bloco IF para REGRA 1 e 3 {% endcomment %}
+        {% if regra == 'REGRA 1' or regra == 'REGRA 3' %}
+            {% with regra_cor="#fd7e14" badge_text_color="white" %} {# Laranja #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }}; background-color: #fffbf5;">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                 <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                 </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="fas fa-exclamation-triangle me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- ============================================
-         SEÇÃO 3: GRÁFICOS
-         ============================================ -->
-    <div class="row g-3 mb-4">
-        <!-- Gráfico 1: Status das Tarefas -->
-        <div class="col-lg-6">
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h3 class="card-title-custom">
-                        <i class="fas fa-chart-pie"></i> Distribuição por Status
-                    </h3>
-                </div>
-                <div class="card-body-custom">
-                    <div id="grafico-status"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráfico 2: Tipos de Alertas -->
-        <div class="col-lg-6">
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h3 class="card-title-custom">
-                        <i class="fas fa-chart-bar"></i> Alertas por Tipo
-                    </h3>
-                </div>
-                <div class="card-body-custom">
-                    <div id="grafico-alertas"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <!-- Gráfico 3: Top Servidores -->
-        <div class="col-lg-6">
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h3 class="card-title-custom">
-                        <i class="fas fa-user-clock"></i> Top 10 Servidores com Mais Alertas
-                    </h3>
-                </div>
-                <div class="card-body-custom">
-                    <div id="grafico-top-servidores"></div>
+            {% endwith %}
+        
+        {% comment %} Bloco ELIF para REGRA 2 e 4 {% endcomment %}
+        {% elif regra == 'REGRA 2' or regra == 'REGRA 4' %}
+            {% with regra_cor="#fd7e14" badge_text_color="white" %} {# Laranja (antes Amarelo) #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }}; background-color: #fffbf5;">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                 <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                 </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="fas fa-exclamation-triangle me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Gráfico 4: Tarefas por GEX -->
-        <div class="col-lg-6">
-            <div class="card-custom">
-                <div class="card-header-custom">
-                    <h3 class="card-title-custom">
-                        <i class="fas fa-building"></i> Top 10 GEX por Quantidade de Tarefas
-                    </h3>
-                </div>
-                <div class="card-body-custom">
-                    <div id="grafico-gex"></div>
+            {% endwith %}
+        
+        {% comment %} Bloco ELSE para outras regras (NENHUMA, etc.) {% endcomment %}
+        {% else %}
+            {% with regra_cor="#6c757d" badge_text_color="white" %} {# Cinza Padrão #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }};">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                 <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                 </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="{{ info.icon }} me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- ============================================
-         SEÇÃO 4: FILTROS
-         ============================================ -->
-    <div class="card-custom mb-4">
-        <div class="card-header-custom">
-            <h3 class="card-title-custom">
-                <i class="fas fa-filter"></i> Filtros Avançados
-            </h3>
-        </div>
-        <div class="card-body-custom">
-            <form method="get" action="" class="row g-2">
-                <!-- Filtro por GEX -->
-                <div class="col-md-3">
-                    <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">GEX</label>
-                    <select name="gex" class="form-select form-select-sm">
-                        <option value="">Todas as GEX</option>
-                        {% for gex in lista_gex %}
-                            <option value="{{ gex }}" {% if filtro_gex == gex %}selected{% endif %}>
-                                {{ gex|truncatechars:40 }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Filtro por Status -->
-                <div class="col-md-3">
-                    <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Status</label>
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="">Todos os Status</option>
-                        {% for status in lista_status %}
-                            <option value="{{ status }}" {% if filtro_status == status %}selected{% endif %}>
-                                {{ status }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Filtro por SIAPE -->
-                <div class="col-md-3">
-                    <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">SIAPE</label>
-                    <input type="text" name="siape" class="form-control form-control-sm"
-                           placeholder="Digite o SIAPE" value="{{ filtro_siape }}">
-                </div>
-
-                <!-- Filtro por Tipo de Alerta -->
-                <div class="col-md-3">
-                    <label class="form-label" style="font-size: 0.85rem; font-weight: 500;">Tipo de Alerta</label>
-                    <select name="tipo_alerta" class="form-select form-select-sm">
-                        <option value="">Todos os Tipos</option>
-                        <option value="PENDENTE_SEM_MOVIMENTACAO" {% if filtro_tipo_alerta == 'PENDENTE_SEM_MOVIMENTACAO' %}selected{% endif %}>
-                            Sem Movimentação
-                        </option>
-                        <option value="EXIGENCIA_VENCIDA" {% if filtro_tipo_alerta == 'EXIGENCIA_VENCIDA' %}selected{% endif %}>
-                            Exigência Vencida
-                        </option>
-                        <option value="EXIGENCIA_CUMPRIDA_PENDENTE" {% if filtro_tipo_alerta == 'EXIGENCIA_CUMPRIDA_PENDENTE' %}selected{% endif %}>
-                            Exigência Cumprida
-                        </option>
-                    </select>
-                </div>
-
-                <!-- Botões -->
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search"></i> Filtrar
-                    </button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">
-                        <i class="fas fa-times"></i> Limpar Filtros
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================
-         SEÇÃO 5: TAREFAS COM ALERTAS
-         ============================================ -->
-    <div class="card-custom mb-4">
-        <div class="card-header-custom">
-            <h3 class="card-title-custom">
-                <i class="fas fa-exclamation-triangle"></i>
-                Tarefas com Alertas
-                <span class="badge bg-danger ms-2">{{ tarefas_alertas.paginator.count }}</span>
-            </h3>
-        </div>
-        <div class="card-body-custom" style="padding: 0;">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                    <thead>
-                        <tr>
-                            <th style="width: 10%;">Protocolo</th>
-                            <th style="width: 20%;">Serviço</th>
-                            <th style="width: 8%;">Status</th>
-                            <th style="width: 18%;">Responsável</th>
-                            <th style="width: 18%;">GEX</th>
-                            <th style="width: 12%;">Tipo de Alerta</th>
-                            <th style="width: 8%;">Dias c/ Servidor</th>
-                            <th style="width: 6%;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tarefa in tarefas_alertas %}
-                        <tr>
-                            <td>
-                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="text-decoration-none"
-                                   data-bs-toggle="tooltip"
-                                   data-bs-placement="top"
-                                   title="Clique para abrir no PAT (faça login antes)">
-                                    <code style="font-size: 0.75rem; color: #0e2238; cursor: pointer;">
-                                        {{ tarefa.numero_protocolo_tarefa }}
-                                        <i class="fas fa-external-link-alt" style="font-size: 0.7em; margin-left: 3px;"></i>
-                                    </code>
-                                </a>
-                            </td>
-                            <td>
-                                <span style="font-size: 0.8rem;">{{ tarefa.nome_servico|truncatechars:30 }}</span>
-                            </td>
-                            <td>
-                                {% if tarefa.status_tarefa == 'Pendente' %}
-                                    <span class="badge bg-warning text-dark">Pendente</span>
-                                {% elif 'Cumprimento' in tarefa.status_tarefa %}
-                                    <span class="badge bg-info text-dark">Cumprimento</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ tarefa.status_tarefa }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span style="font-size: 0.8rem;">
-                                    {{ tarefa.nome_profissional_responsavel|default:"Sem responsável"|truncatechars:25 }}
-                                </span>
-                                <br>
-                                <small class="text-muted">SIAPE: {{ tarefa.siape_responsavel.siape|default:"-" }}</small>
-                            </td>
-                            <td>
-                                <span style="font-size: 0.75rem;">{{ tarefa.nome_gex_responsavel|default:"Sem GEX"|truncatechars:25 }}</span>
-                            </td>
-                            <td>
-                                {% if tarefa.tipo_alerta == 'PENDENTE_SEM_MOVIMENTACAO' %}
-                                    <span class="badge" style="background-color: #ffc107; color: #000;">
-                                        <i class="fas fa-pause-circle"></i> Sem Mov.
-                                    </span>
-                                {% elif tarefa.tipo_alerta == 'EXIGENCIA_VENCIDA' %}
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-times-circle"></i> Vencida
-                                    </span>
-                                {% elif tarefa.tipo_alerta == 'EXIGENCIA_CUMPRIDA_PENDENTE' %}
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-check-circle"></i> Cumprida
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-dark">{{ tarefa.dias_com_servidor }} dias</span>
-                            </td>
-                            <td>
-                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   class="btn btn-sm btn-outline-primary"
-                                   data-bs-toggle="tooltip"
-                                   data-bs-placement="left"
-                                   title="Abrir no PAT">
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted" style="padding: 2rem;">
-                                <i class="fas fa-check-circle" style="font-size: 2rem; color: #28a745;"></i>
-                                <p class="mt-2 mb-0">Nenhuma tarefa com alerta encontrada</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Paginação das Tarefas com Alertas -->
-        {% if tarefas_alertas.has_other_pages %}
-        <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
-            <nav>
-                <ul class="pagination pagination-sm mb-0 justify-content-center">
-                    {% if tarefas_alertas.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_alertas=1{% if filtro_gex %}&gex={{ filtro_gex }}{% endif %}{% if filtro_siape %}&siape={{ filtro_siape }}{% endif %}{% if filtro_tipo_alerta %}&tipo_alerta={{ filtro_tipo_alerta }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
-                            &laquo; Primeira
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page_alertas={{ tarefas_alertas.previous_page_number }}{% if filtro_gex %}&gex={{ filtro_gex }}{% endif %}{% if filtro_siape %}&siape={{ filtro_siape }}{% endif %}{% if filtro_tipo_alerta %}&tipo_alerta={{ filtro_tipo_alerta }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
-                            Anterior
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <li class="page-item active">
-                        <span class="page-link">
-                            Página {{ tarefas_alertas.number }} de {{ tarefas_alertas.paginator.num_pages }}
-                        </span>
-                    </li>
-
-                    {% if tarefas_alertas.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_alertas={{ tarefas_alertas.next_page_number }}{% if filtro_gex %}&gex={{ filtro_gex }}{% endif %}{% if filtro_siape %}&siape={{ filtro_siape }}{% endif %}{% if filtro_tipo_alerta %}&tipo_alerta={{ filtro_tipo_alerta }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
-                            Próxima
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page_alertas={{ tarefas_alertas.paginator.num_pages }}{% if filtro_gex %}&gex={{ filtro_gex }}{% endif %}{% if filtro_siape %}&siape={{ filtro_siape }}{% endif %}{% if filtro_tipo_alerta %}&tipo_alerta={{ filtro_tipo_alerta }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
-                            Última &raquo;
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
+            {% endwith %}
         {% endif %}
+            
+        {% endfor %}
     </div>
 
-    <!-- ============================================
-         SEÇÃO 6: LISTA DE SERVIDORES
-         ============================================ -->
-    <div class="card-custom">
-        <div class="card-header-custom">
-            <h3 class="card-title-custom">
-                <i class="fas fa-users"></i>
-                Lista de Servidores
-                <span class="badge bg-primary ms-2">{{ servidores.paginator.count }}</span>
-            </h3>
-        </div>
-        <div class="card-body-custom" style="padding: 0;">
-            <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0" id="tabela-servidores">
-                    <thead>
-                        <tr>
-                            <th style="width: 10%;">SIAPE</th>
-                            <th style="width: 25%;">Nome</th>
-                            <th style="width: 20%;">GEX</th>
-                            <th style="width: 10%;">Total</th>
-                            <th style="width: 10%;">Pendentes</th>
-                            <th style="width: 10%;">Cumprimento</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 5%;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for servidor in servidores %}
-                        <tr>
-                            <td><code style="font-size: 0.75rem;">{{ servidor.siape }}</code></td>
-                            <td>{{ servidor.nome_completo|truncatechars:35 }}</td>
-                            <td>
-                                <span style="font-size: 0.8rem;">{{ servidor.gex|default:"Sem GEX"|truncatechars:30 }}</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">{{ servidor.total_tarefas }}</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-warning text-dark">{{ servidor.tarefas_pendentes }}</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-info text-dark">{{ servidor.tarefas_cumprimento }}</span>
-                            </td>
-                            <td>
-                                {% if servidor.tem_email_real %}
-                                    <span class="badge bg-success" title="Cadastro completo">
-                                        <i class="fas fa-check"></i> OK
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-warning text-dark" title="Sem e-mail cadastrado">
-                                        <i class="fas fa-exclamation-triangle"></i> Incompleto
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'servidor_detail' servidor.siape %}"
-                                   class="btn btn-sm btn-outline-primary"
-                                   title="Ver tarefas do servidor">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted" style="padding: 2rem;">
-                                Nenhum servidor encontrado
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Criticidade
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-criticidade" style="max-height: 300px;"></canvas>
+                </div>
             </div>
         </div>
 
-        <!-- Paginação dos Servidores -->
-        {% if servidores.has_other_pages %}
-        <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
-            <nav>
-                <ul class="pagination pagination-sm mb-0 justify-content-center">
-                    {% if servidores.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_servidores=1">
-                            &laquo; Primeira
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page_servidores={{ servidores.previous_page_number }}">
-                            Anterior
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <li class="page-item active">
-                        <span class="page-link">
-                            Página {{ servidores.number }} de {{ servidores.paginator.num_pages }}
-                        </span>
-                    </li>
-
-                    {% if servidores.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page_servidores={{ servidores.next_page_number }}">
-                            Próxima
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page_servidores={{ servidores.paginator.num_pages }}">
-                            Última &raquo;
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-bar"></i> Distribuição por Status
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-status" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
         </div>
-        {% endif %}
+
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-line"></i> Tarefas por Regra
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-regras" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <a href="{% url 'tarefas:lista_tarefas' %}" class="btn-action-card">
+                <div class="card-custom" style="cursor: pointer;">
+                    <div class="card-body-custom text-center py-4">
+                        <div style="font-size: 3rem; color: #0e2238; margin-bottom: 1rem;">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <h4 class="mb-2">Ver Todas as Tarefas</h4>
+                        <p class="text-muted mb-0">
+                            Lista completa com filtros avançados
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a href="{% url 'tarefas:lista_servidores' %}" class="btn-action-card">
+                <div class="card-custom" style="cursor: pointer;">
+                    <div class="card-body-custom text-center py-4">
+                        <div style="font-size: 3rem; color: #0e2238; margin-bottom: 1rem;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4 class="mb-2">Ver Todos os Servidores</h4>
+                        <p class="text-muted mb-0">
+                            Ranking e detalhes dos servidores
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <small class="text-muted">
+            <strong>Legenda:</strong>
+            <span class="badge bg-danger ms-2">⛔ CRÍTICA</span>
+            <span class="badge bg-success ms-2">✅ REGULAR</span>
+        </small>
     </div>
 
 </div>
 
+<style>
+.btn-action-card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.btn-action-card .card-custom {
+    transition: all 0.3s ease;
+}
+
+.btn-action-card .card-custom:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+/* --- NOVOS ESTILOS ADICIONADOS --- */
+.rule-card {
+    transition: all 0.3s ease;
+    /* Garante que o card fique sobre outros elementos no hover */
+    position: relative; 
+    z-index: 1;
+}
+
+.rule-card:hover {
+    transform: translateY(-5px); /* Efeito de "levantar" */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* Sombra mais pronunciada */
+    z-index: 10; /* Traz o card para frente */
+}
+/* --- FIM DOS NOVOS ESTILOS --- */
+</style>
+
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
-
 <script>
-    // Renderiza os gráficos Plotly
-    document.addEventListener('DOMContentLoaded', function() {
-        // Gráfico 1: Status das Tarefas
-        const graficoStatus = {{ grafico_status|safe }};
-        Plotly.newPlot('grafico-status', graficoStatus.data, graficoStatus.layout, {
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico 1: Criticidade (Donut)
+    // ATUALIZADO PELA VIEW (variáveis 'labels', 'data', 'colors' simplificadas)
+    const ctxCriticidade = document.getElementById('grafico-criticidade').getContext('2d');
+    new Chart(ctxCriticidade, {
+        type: 'doughnut',
+        data: {
+            labels: {{ grafico_criticidade.labels|safe }},
+            datasets: [{
+                data: {{ grafico_criticidade.data|safe }},
+                backgroundColor: {{ grafico_criticidade.colors|safe }},
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
             responsive: true,
-            displayModeBar: false
-        });
-
-        // Gráfico 2: Tipos de Alertas
-        const graficoAlertas = {{ grafico_alertas|safe }};
-        Plotly.newPlot('grafico-alertas', graficoAlertas.data, graficoAlertas.layout, {
-            responsive: true,
-            displayModeBar: false
-        });
-
-        // Gráfico 3: Top Servidores
-        const graficoTopServidores = {{ grafico_top_servidores|safe }};
-        Plotly.newPlot('grafico-top-servidores', graficoTopServidores.data, graficoTopServidores.layout, {
-            responsive: true,
-            displayModeBar: false
-        });
-
-        // Gráfico 4: Tarefas por GEX
-        const graficoGex = {{ grafico_gex|safe }};
-        Plotly.newPlot('grafico-gex', graficoGex.data, graficoGex.layout, {
-            responsive: true,
-            displayModeBar: false
-        });
-
-        // Inicializa os tooltips do Bootstrap
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Efeito hover nos protocolos
-        document.querySelectorAll('a code').forEach(function(element) {
-            element.addEventListener('mouseenter', function() {
-                this.style.textDecoration = 'underline';
-            });
-            element.addEventListener('mouseleave', function() {
-                this.style.textDecoration = 'none';
-            });
-        });
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
     });
+
+    // Gráfico 2: Status (Sem alteração)
+    const ctxStatus = document.getElementById('grafico-status').getContext('2d');
+    new Chart(ctxStatus, {
+        type: 'bar',
+        data: {
+            labels: {{ grafico_status.labels|safe }},
+            datasets: [{
+                label: 'Tarefas',
+                data: {{ grafico_status.data|safe }},
+                backgroundColor: {{ grafico_status.colors|safe }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico 3: Regras (Sem alteração)
+    const ctxRegras = document.getElementById('grafico-regras').getContext('2d');
+    new Chart(ctxRegras, {
+        type: 'bar',
+        data: {
+            labels: {{ grafico_regras.labels|safe }},
+            datasets: [{
+                label: 'Tarefas',
+                data: {{ grafico_regras.data|safe }},
+                backgroundColor: {{ grafico_regras.colors|safe }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
 </script>
 {% endblock %}

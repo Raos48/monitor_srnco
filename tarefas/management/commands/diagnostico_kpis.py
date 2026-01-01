@@ -68,12 +68,11 @@ try:
     from tarefas.analisador import obter_analisador
     analisador = obter_analisador()
     print(f"   ✅ Analisador criado com sucesso")
-    print(f"   Data referência: {analisador.data_referencia}")
     
     resultado = analisador.analisar_tarefa(tarefa)
     print(f"   ✅ Análise funcionando:")
     print(f"      - Regra: {resultado['regra']}")
-    print(f"      - Severidade: {resultado['severidade']}")
+    print(f"      - Nível: {resultado['nivel']}")
 except Exception as e:
     print(f"   ❌ PROBLEMA: Erro ao usar analisador!")
     print(f"   ERRO: {e}")

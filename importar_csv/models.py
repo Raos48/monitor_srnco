@@ -3,26 +3,63 @@ from usuarios.models import CustomUser
 from tarefas.models import Tarefa
 
 class RegistroImportacao(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pendente'),
+        ('PROCESSING', 'Processando'),
+        ('COMPLETED', 'Concluída'),
+        ('FAILED', 'Falhou'),
+    ]
+
     usuario = models.ForeignKey(
-        CustomUser, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
         verbose_name="Usuário Responsável"
     )
     data_importacao = models.DateTimeField(
-        auto_now_add=True, 
+        auto_now_add=True,
         verbose_name="Data da Importação"
     )
     nome_arquivo = models.CharField(
-        max_length=255, 
+        max_length=255,
         verbose_name="Nome do Arquivo CSV"
     )
+    caminho_arquivo = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Caminho do Arquivo Temporário"
+    )
+
+    # Campos de rastreamento assíncrono
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING',
+        verbose_name="Status da Importação"
+    )
+    total_linhas = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Total de Linhas no CSV"
+    )
+    linhas_processadas = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Linhas Processadas"
+    )
+    progresso_percentual = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        verbose_name="Progresso (%)"
+    )
+
+    # Campos de resultado
     registros_criados = models.PositiveIntegerField(
-        default=0, 
+        default=0,
         verbose_name="Tarefas Novas Criadas"
     )
     registros_atualizados = models.PositiveIntegerField(
-        default=0, 
+        default=0,
         verbose_name="Tarefas Atualizadas"
     )
     usuarios_criados = models.PositiveIntegerField(
@@ -30,10 +67,70 @@ class RegistroImportacao(models.Model):
         verbose_name="Usuários Criados"
     )
 
+    # Controle de tempo
+    data_inicio_processamento = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Início do Processamento"
+    )
+    data_fim_processamento = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fim do Processamento"
+    )
+
+    # Mensagens de erro
+    mensagem_erro = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Mensagem de Erro"
+    )
+
     def __str__(self):
         data_formatada = self.data_importacao.strftime('%d/%m/%Y às %H:%M')
         nome_usuario = self.usuario.nome_completo if self.usuario else "Usuário Desconhecido"
-        return f"Importação em {data_formatada} por {nome_usuario}"
+        return f"Importação em {data_formatada} por {nome_usuario} - {self.get_status_display()}"
+
+    def calcular_progresso(self):
+        """Calcula e atualiza o percentual de progresso"""
+        if self.total_linhas > 0:
+            self.progresso_percentual = (self.linhas_processadas / self.total_linhas) * 100
+        else:
+            self.progresso_percentual = 0
+        return self.progresso_percentual
+
+    def duracao_processamento(self):
+        """Retorna a duração do processamento em segundos"""
+        if self.data_inicio_processamento and self.data_fim_processamento:
+            delta = self.data_fim_processamento - self.data_inicio_processamento
+            return delta.total_seconds()
+        return None
+
+    def arquivo_existe(self):
+        """Verifica se o arquivo ainda existe no disco"""
+        import os
+        if self.caminho_arquivo:
+            return os.path.exists(self.caminho_arquivo)
+        return False
+
+    def tamanho_arquivo_mb(self):
+        """Retorna o tamanho do arquivo em MB"""
+        import os
+        if self.caminho_arquivo and os.path.exists(self.caminho_arquivo):
+            tamanho_bytes = os.path.getsize(self.caminho_arquivo)
+            return tamanho_bytes / (1024 * 1024)
+        return None
+
+    def deletar_arquivo(self):
+        """Deleta o arquivo do disco de forma segura"""
+        import os
+        if self.caminho_arquivo and os.path.exists(self.caminho_arquivo):
+            try:
+                os.remove(self.caminho_arquivo)
+                return True, f"Arquivo deletado com sucesso: {self.nome_arquivo}"
+            except Exception as e:
+                return False, f"Erro ao deletar arquivo: {str(e)}"
+        return False, "Arquivo não encontrado no disco"
 
     class Meta:
         verbose_name = "Registro de Importação"

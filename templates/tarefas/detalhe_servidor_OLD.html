@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ servidor.nome_completo }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-user"></i>
+                {{ servidor.nome_completo }}
+            </h1>
+            <p class="text-muted mb-0">
+                SIAPE: {{ servidor.siape }} | GEX: {{ servidor.gex|default:"N/A" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:lista_servidores' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card" style="border-left: 4px solid #0e2238;">
+                <div class="kpi-icon text-primary">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="kpi-value">{{ kpis.total|default:0 }}</div>
+                <div class="kpi-label">Total de Tarefas</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi-card" style="border-left: 4px solid #dc3545;">
+                <div class="kpi-icon text-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="kpi-value">{{ kpis.criticas|default:0 }}</div>
+                <div class="kpi-label">
+                    ⛔ Críticas
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="kpi-card" style="border-left: 4px solid #28a745;">
+                <div class="kpi-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="kpi-value">{{ kpis.regulares|default:0 }}</div>
+                <div class="kpi-label">
+                    ✅ Regulares
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <h3><i class="fas fa-info-circle text-primary"></i> Resumo por Regras de Criticidade</h3>
+        <p class="text-muted">Distribuição das tarefas por cada regra de análise</p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        {% for regra, info in regras_resumo.items %}
+            
+        {% comment %} Lógica de cores baseada no dashboard_coordenador.html {% endcomment %}
+        {% if regra == 'REGRA 1' or regra == 'REGRA 3' %}
+            {% with regra_cor="#fd7e14" badge_text_color="white" bg_color="#fffbf5" %} {# Laranja #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }}; background-color: {{ bg_color }};">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="{{ info.icon }} me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        
+        {% elif regra == 'REGRA 2' or regra == 'REGRA 4' %}
+            {% with regra_cor="#fd7e14" badge_text_color="white" bg_color="#fffbf5" %} {# Laranja #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }}; background-color: {{ bg_color }};">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="{{ info.icon }} me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        
+        {% else %}
+            {% with regra_cor="#6c757d" badge_text_color="white" bg_color="#f8f9fa" %} {# Cinza Padrão #}
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm rule-card" style="border-left: 5px solid {{ regra_cor }}; background-color: {{ bg_color }};">
+                    <div class="card-body d-flex flex-column justify-content-between p-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center me-3 ps-2">
+                                <h1 class="display-6 mb-0 fw-bold" style="color: {{ regra_cor }}; line-height: 1;">
+                                    {{ info.count }}
+                                </h1>
+                                <small class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Tarefas</small>
+                            </div>
+                            <div class="flex-grow-1 text-end">
+                                <span class="badge mb-1" style="background-color: {{ regra_cor }}; color: {{ badge_text_color }}; font-size: 0.7rem;">
+                                    {{ regra }}
+                                </span>
+                                <h6 class="card-title mb-1 fw-normal">
+                                    <i class="{{ info.icon }} me-1" style="color: {{ regra_cor }};"></i>
+                                    {{ info.nome }}
+                                </h6>
+                                <p class="card-text mb-0" style="font-size: 0.8rem;">
+                                    <small>{{ info.descricao|truncatewords:15 }}</small>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-1 text-end border-top pt-1 pe-2">
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock me-1"></i> Prazo: {{ info.prazo }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        {% endif %}
+            
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Criticidade
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <canvas id="grafico-criticidade" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-exclamation-triangle"></i> Top 10 Tarefas Prioritárias
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Criticidade</th>
+                                    <th>Protocolo</th>
+                                    <th>Serviço</th>
+                                    <th>Alerta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tarefa in tarefas_prioritarias %}
+                                <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
+                                    <td>{{ tarefa.badge_html_criticidade|safe }}</td>
+                                    <td>
+                                        <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
+                                           target="_blank" 
+                                           class="protocolo-link">
+                                            <code style="font-size: 0.7rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                            <i class="fas fa-external-link-alt" style="font-size: 0.5rem;"></i>
+                                        </a>
+                                    </td>
+                                    <td><small>{{ tarefa.nome_servico|truncatewords:3 }}</small></td>
+                                    <td>
+                                        <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" class="alerta-link">
+                                            <small>{{ tarefa.alerta_criticidade_calculado|truncatewords:5 }}</small>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        Nenhuma tarefa prioritária
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if servicos_resumo %}
+    <div class="card-custom mb-4">
+        <div class="card-header-custom">
+            <h3 class="card-title-custom">
+                <i class="fas fa-chart-bar"></i> Resumo por Tipo de Serviço
+            </h3>
+        </div>
+        <div class="card-body-custom">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">⛔ Críticas</th>
+                            <th class="text-center">✅ Regulares</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for servico in servicos_resumo %}
+                        <tr>
+                            <td><strong>{{ servico.nome_servico|truncatewords:6 }}</strong></td>
+                            <td class="text-center"><span class="badge bg-primary">{{ servico.total }}</span></td>
+                            <td class="text-center">
+                                {% if servico.criticas > 0 %}
+                                <span class="badge bg-danger">{{ servico.criticas }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if servico.regulares > 0 %}
+                                <span class="badge bg-success">{{ servico.regulares }}</span>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card-custom">
+        <div class="card-header-custom">
+            <h3 class="card-title-custom">
+                Lista Completa de Tarefas ({{ tarefas.paginator.count }})
+            </h3>
+        </div>
+        <div class="card-body-custom" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Criticidade</th>
+                            <th>Protocolo</th>
+                            <th>Serviço</th>
+                            <th>Status</th>
+                            <th>Alerta / Descrição</th>
+                            <th>Distribuição</th>
+                            <th class="text-center">Dias Pend.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in tarefas %}
+                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
+                            <td>{{ tarefa.badge_html_criticidade|safe }}</td>
+                            <td>
+                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
+                                   target="_blank" 
+                                   class="protocolo-link">
+                                    <code style="font-size: 0.75rem;">{{ tarefa.numero_protocolo_tarefa }}</code>
+                                    <i class="fas fa-external-link-alt" style="font-size: 0.5rem;"></i>
+                                </a>
+                            </td>
+                            <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
+                            <td><small>{{ tarefa.status_tarefa|truncatechars:20 }}</small></td>
+                            <td>
+                                {% if tarefa.alerta_criticidade_calculado %}
+                                    <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" class="alerta-link">
+                                        <small>{{ tarefa.alerta_criticidade_calculado|truncatewords:8 }}</small>
+                                    </a>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y" }}</small></td>
+                            <td class="text-center">
+                                {% if tarefa.tempo_em_pendencia_em_dias > 7 %}
+                                    <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Nenhuma tarefa atribuída
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if tarefas.has_other_pages %}
+        <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if tarefas.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tarefas.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">Página {{ tarefas.number }}</span></li>
+                    {% if tarefas.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ tarefas.next_page_number }}">Próxima</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<style>
+.protocolo-link {
+    color: #0e2238;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.protocolo-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.alerta-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.alerta-link:hover {
+    text-decoration: underline;
+}
+
+/* --- ✅ NOVOS ESTILOS ADICIONADOS --- */
+.rule-card {
+    transition: all 0.3s ease;
+    position: relative; 
+    z-index: 1;
+}
+
+.rule-card:hover {
+    transform: translateY(-5px); /* Efeito de "levantar" */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* Sombra mais pronunciada */
+    z-index: 10; /* Traz o card para frente */
+}
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('grafico-criticidade').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            // Atualizado pela view
+            labels: {{ grafico_criticidade.labels | safe }},
+            datasets: [{
+                data: {{ grafico_criticidade.data | safe }},
+                backgroundColor: {{ grafico_criticidade.colors | safe }},
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

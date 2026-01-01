@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 15 python manage.py worker:*)",
+      "Bash(findstr:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(models__init__.py)",
+      "Bash(services__init__.py)",
+      "Bash(api__init__.py)",
+      "Bash(echo:*)",
+      "Bash(admin.py)",
+      "Bash(python:*)",
+      "Bash(del testar_exportacao.py)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" -m pip install django-debug-toolbar)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" -m pip install msal)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py check)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py runserver)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py makemigrations tarefas --name adicionar_indices_performance)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py showmigrations tarefas)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py migrate tarefas)",
+      "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py makemigrations tarefas --name adicionar_historico_acao_lote)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

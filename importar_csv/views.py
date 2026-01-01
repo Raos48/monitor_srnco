@@ -32,14 +32,90 @@ class ImportarCSVView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
         })
 
     def post(self, request, *args, **kwargs):
+        """
+        Método POST ASSÍNCRONO - Agenda a importação em segundo plano.
+        O processamento real é feito pela tarefa processar_importacao_async.
+        """
+        import os
+        from django.conf import settings
+        from django.utils.text import get_valid_filename
+        import uuid
+        from .tasks import processar_importacao_async
+
         form = self.form_class(request.POST, request.FILES)
-        
+
         if not form.is_valid():
+            messages.error(request, 'Formulário inválido')
+            return redirect('importar_csv:importar_csv')
+
+        arquivo_csv = request.FILES['arquivo_csv']
+
+        if not arquivo_csv.name.endswith('.csv'):
+            messages.error(request, 'Este não é um arquivo CSV válido.')
+            return redirect('importar_csv:importar_csv')
+
+        # Criar diretório de uploads se não existir
+        upload_dir = os.path.join(settings.BASE_DIR, 'media', 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Salvar arquivo temporariamente com nome único
+        nome_seguro = get_valid_filename(arquivo_csv.name)
+        nome_unico = f"{uuid.uuid4()}_{nome_seguro}"
+        caminho_completo = os.path.join(upload_dir, nome_unico)
+
+        # Gravar arquivo no disco
+        with open(caminho_completo, 'wb+') as destination:
+            for chunk in arquivo_csv.chunks():
+                destination.write(chunk)
+
+        # Criar registro de importação com status PENDING
+        registro = RegistroImportacao.objects.create(
+            usuario=request.user,
+            nome_arquivo=arquivo_csv.name,
+            caminho_arquivo=caminho_completo,
+            status='PENDING'
+        )
+
+        # Agendar tarefa em segundo plano
+        processar_importacao_async(registro.id)
+
+        messages.success(
+            request,
+            f'✅ Importação agendada com sucesso! '
+            f'O arquivo "{arquivo_csv.name}" está sendo processado em segundo plano. '
+            f'Você pode acompanhar o progresso na lista de importações abaixo.'
+        )
+
+        return redirect('importar_csv:importar_csv')
+
+    def post_sincrono(self, request, *args, **kwargs):
+        """
+        MÉTODO LEGADO - Processamento síncrono (BACKUP)
+        Mantido para referência. Use post() para modo assíncrono.
+        """
+        form = self.form_class(request.POST, request.FILES)
+
+        # Verifica se é uma requisição AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        if not form.is_valid():
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Formulário inválido'
+                }, status=400)
             return render(request, self.template_name, {'form': form})
 
         arquivo_csv = request.FILES['arquivo_csv']
-        
+
         if not arquivo_csv.name.endswith('.csv'):
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Este não é um arquivo CSV válido.'
+                }, status=400)
             messages.error(request, 'Este não é um arquivo CSV válido.')
             return redirect('importar_csv:importar_csv')
 
@@ -117,12 +193,25 @@ class ImportarCSVView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
             )
             if usuarios_criados > 0:
                 msg += f" 👤 {usuarios_criados} novo(s) usuário(s) criado(s) automaticamente."
-            
+
             messages.success(request, msg)
+
+            # Se for AJAX, retorna JSON
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'success': True,
+                    'total': total_rows,
+                    'criadas': total_criados,
+                    'atualizadas': total_atualizados,
+                    'erros': 0,
+                    'usuarios_criados': usuarios_criados,
+                    'message': msg
+                })
 
         except Exception as e:
             registro_importacao.delete()
-            
+
             print(f"\n--- ERRO CRÍTICO NA IMPORTAÇÃO ---")
             print(f"Exceção: {type(e).__name__}")
             print(f"Mensagem: {e}")
@@ -130,12 +219,18 @@ class ImportarCSVView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
             print(f"Traceback:\n{traceback.format_exc()}")
             print(f"A importação foi interrompida e todas as alterações foram revertidas.")
             print(f"---------------------------------\n")
-            
-            messages.error(
-                request,
-                f"Ocorreu um erro crítico durante a importação: {e}. "
-                f"A operação foi interrompida."
-            )
+
+            error_msg = f"Ocorreu um erro crítico durante a importação: {e}. A operação foi interrompida."
+            messages.error(request, error_msg)
+
+            # Se for AJAX, retorna JSON com erro
+            if is_ajax:
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e),
+                    'message': error_msg
+                }, status=500)
 
         return redirect('importar_csv:importar_csv')
 
@@ -478,33 +573,63 @@ class ImportarCSVView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
                 
                 
             # ============================================
-            # NOVO: CALCULAR CRITICIDADE PARA TODAS AS TAREFAS DO LOTE
+            # OTIMIZADO: CALCULAR CRITICIDADE E TIPO FILA COM BULK_UPDATE
             # ============================================
-            print(f"  → Calculando criticidade para {len(tarefas_para_atualizar)} tarefas...")
-            
-            from datetime import datetime
-            
-            tarefas_com_criticidade = []
+            print(f"  → Calculando criticidade e tipo de fila para {len(tarefas_para_atualizar)} tarefas...")
+
+            tarefas_para_atualizar_criticidade = []
             for tarefa in tarefas_para_atualizar:
                 try:
-                    # Calcular criticidade (não salva ainda)
-                    resultado = tarefa.calcular_e_salvar_criticidade()
-                    tarefas_com_criticidade.append(tarefa)
+                    # Calcula criticidade SEM salvar (novo método otimizado)
+                    campos_calculados = tarefa.calcular_criticidade()
+
+                    # Atribui os valores aos campos da tarefa
+                    for campo, valor in campos_calculados.items():
+                        setattr(tarefa, campo, valor)
+
+                    # Calcula tipo de fila
+                    tarefa.tipo_fila = tarefa.classificar_fila()
+
+                    tarefas_para_atualizar_criticidade.append(tarefa)
                 except Exception as e:
                     print(f"  ⚠️ Erro ao calcular criticidade da tarefa {tarefa.numero_protocolo_tarefa}: {e}")
-            
-            print(f"  → {len(tarefas_com_criticidade)} tarefas com criticidade calculada")
-            
-            # Atualizar APENAS os campos de criticidade (já foram salvos pelo método)
-            # Este print é só confirmação
-            criticas_count = sum(1 for t in tarefas_com_criticidade if t.nivel_criticidade_calculado == 'CRÍTICA')
-            altas_count = sum(1 for t in tarefas_com_criticidade if t.nivel_criticidade_calculado == 'ALTA')
-            print(f"  → Resumo: {criticas_count} críticas, {altas_count} altas")
+
+            # BULK UPDATE dos campos de criticidade + tipo_fila (UMA ÚNICA QUERY!)
+            if tarefas_para_atualizar_criticidade:
+                Tarefa.objects.bulk_update(
+                    tarefas_para_atualizar_criticidade,
+                    fields=[
+                        'nivel_criticidade_calculado',
+                        'regra_aplicada_calculado',
+                        'alerta_criticidade_calculado',
+                        'descricao_criticidade_calculado',
+                        'dias_pendente_criticidade_calculado',
+                        'prazo_limite_criticidade_calculado',
+                        'pontuacao_criticidade',
+                        'cor_criticidade_calculado',
+                        'data_calculo_criticidade',
+                        'tipo_fila'  # NOVO CAMPO
+                    ]
+                )
+
+                # Estatísticas
+                criticas_count = sum(1 for t in tarefas_para_atualizar_criticidade if t.nivel_criticidade_calculado == 'CRÍTICA')
+                regulares_count = sum(1 for t in tarefas_para_atualizar_criticidade if t.nivel_criticidade_calculado == 'REGULAR')
+                print(f"  → {len(tarefas_para_atualizar_criticidade)} tarefas com criticidade atualizada")
+                print(f"  → Resumo: {criticas_count} críticas, {regulares_count} regulares")
 
                 
                 
                 
                 
+
+            # ETAPA 6.5: Garantir que todas as tarefas presentes no CSV estejam marcadas como ativas
+            if tarefas_para_atualizar:
+                # Marca como ativa todas as tarefas que estão no CSV
+                Tarefa.objects.filter(
+                    numero_protocolo_tarefa__in=protocolos_lote_str
+                ).update(ativa=True)
+                print(f"  → {len(protocolos_lote_str)} tarefas marcadas como ativas (presentes no CSV)")
 
             # ETAPA 7: Cria os registros de histórico (COM TODOS OS CAMPOS + 3 NOVOS)
             tarefas_processadas = Tarefa.objects.filter(
@@ -546,3 +671,47 @@ class ImportarCSVView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
                 print(f"  ⚠️ TOTAL: {len(protocolos_nao_encontrados)} protocolos não foram inseridos no banco")
 
             return qtd_novos, qtd_ja_existiam, usuarios_criados_lote
+
+
+class StatusImportacaoAPIView(LoginRequiredMixin, CoordenadorRequiredMixin, View):
+    """
+    API REST para verificar status de uma importação em tempo real.
+    Retorna JSON com progresso, estatísticas e status atual.
+    """
+
+    def get(self, request, registro_id):
+        from django.http import JsonResponse
+
+        try:
+            registro = RegistroImportacao.objects.get(id=registro_id, usuario=request.user)
+
+            # Calcular tempo decorrido
+            tempo_decorrido = None
+            if registro.data_inicio_processamento:
+                from django.utils import timezone
+                if registro.status == 'PROCESSING':
+                    delta = timezone.now() - registro.data_inicio_processamento
+                    tempo_decorrido = delta.total_seconds()
+                elif registro.data_fim_processamento:
+                    tempo_decorrido = registro.duracao_processamento()
+
+            return JsonResponse({
+                'success': True,
+                'status': registro.status,
+                'status_display': registro.get_status_display(),
+                'progresso': float(registro.progresso_percentual),
+                'total_linhas': registro.total_linhas,
+                'linhas_processadas': registro.linhas_processadas,
+                'criados': registro.registros_criados,
+                'atualizados': registro.registros_atualizados,
+                'usuarios_criados': registro.usuarios_criados,
+                'mensagem_erro': registro.mensagem_erro,
+                'tempo_decorrido': tempo_decorrido,
+                'nome_arquivo': registro.nome_arquivo,
+            })
+
+        except RegistroImportacao.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Registro de importação não encontrado'
+            }, status=404)

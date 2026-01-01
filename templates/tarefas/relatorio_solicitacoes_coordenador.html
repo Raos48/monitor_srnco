@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Relatório de Solicitações de Ajuda - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-hands-helping"></i> Relatório de Solicitações de Ajuda
+            </h1>
+            <p class="text-muted mb-0">
+                Análise estatística do sistema de solicitações
+            </p>
+        </div>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de Solicitações</h6>
+                            <h2 class="mb-0">{{ stats_gerais.total }}</h2>
+                        </div>
+                        <div class="fs-1 text-primary">
+                            <i class="fas fa-list"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Pendentes</h6>
+                            <h2 class="mb-0 text-danger">{{ stats_gerais.pendentes }}</h2>
+                        </div>
+                        <div class="fs-1 text-danger">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-info border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Em Atendimento</h6>
+                            <h2 class="mb-0 text-info">{{ stats_gerais.em_atendimento }}</h2>
+                        </div>
+                        <div class="fs-1 text-info">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Concluídas</h6>
+                            <h2 class="mb-0 text-success">{{ stats_gerais.concluidas }}</h2>
+                        </div>
+                        <div class="fs-1 text-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI: Tempo Médio de Atendimento -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-stopwatch"></i> Tempo Médio de Atendimento
+                            </h5>
+                            <p class="text-muted mb-0">
+                                Tempo médio desde a solicitação até a conclusão do atendimento
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h1 class="display-3 mb-0 text-info">
+                                {{ stats_gerais.tempo_medio_horas|floatformat:1 }}h
+                            </h1>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            {% if stats_gerais.tempo_medio_horas < 24 %}
+                            <strong>Excelente!</strong> As solicitações estão sendo atendidas em menos de 24 horas.
+                            {% elif stats_gerais.tempo_medio_horas < 48 %}
+                            <strong>Bom desempenho.</strong> Tempo médio dentro do aceitável.
+                            {% else %}
+                            <strong>Atenção!</strong> Tempo médio elevado. Considere reforçar a equipe volante.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Performance da Equipe Volante -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users"></i> Performance da Equipe Volante
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if membros_volante %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;" class="text-center">#</th>
+                                    <th style="width: 40%;">Membro</th>
+                                    <th style="width: 15%;" class="text-center">Total</th>
+                                    <th style="width: 15%;" class="text-center">Concluídos</th>
+                                    <th style="width: 15%;" class="text-center">Em Andamento</th>
+                                    <th style="width: 10%;" class="text-center">Taxa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for membro in membros_volante %}
+                                <tr>
+                                    <td class="text-center">
+                                        {% if forloop.counter <= 3 %}
+                                        <span class="badge bg-warning text-dark">{{ forloop.counter }}</span>
+                                        {% else %}
+                                        {{ forloop.counter }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ membro.nome_completo|truncatewords:4 }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ membro.email }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ membro.total_atendimentos }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ membro.concluidos }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ membro.em_andamento }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if membro.total_atendimentos > 0 %}
+                                        {% widthratio membro.concluidos membro.total_atendimentos 100 %}%
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-users-slash fa-3x mb-3"></i>
+                        <p class="mb-0">Nenhum membro da Equipe Volante encontrado</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição de Status -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-clock text-danger"></i> Pendentes</span>
+                            <strong>{{ stats_gerais.pendentes }}</strong>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-danger" 
+                                 role="progressbar" 
+                                 style="width: {% if stats_gerais.total > 0 %}{% widthratio stats_gerais.pendentes stats_gerais.total 100 %}{% else %}0{% endif %}%;">
+                                {% if stats_gerais.total > 0 %}
+                                {% widthratio stats_gerais.pendentes stats_gerais.total 100 %}%
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-user-clock text-info"></i> Em Atendimento</span>
+                            <strong>{{ stats_gerais.em_atendimento }}</strong>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-info" 
+                                 role="progressbar" 
+                                 style="width: {% if stats_gerais.total > 0 %}{% widthratio stats_gerais.em_atendimento stats_gerais.total 100 %}{% else %}0{% endif %}%;">
+                                {% if stats_gerais.total > 0 %}
+                                {% widthratio stats_gerais.em_atendimento stats_gerais.total 100 %}%
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-check-circle text-success"></i> Concluídas</span>
+                            <strong>{{ stats_gerais.concluidas }}</strong>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-success" 
+                                 role="progressbar" 
+                                 style="width: {% if stats_gerais.total > 0 %}{% widthratio stats_gerais.concluidas stats_gerais.total 100 %}{% else %}0{% endif %}%;">
+                                {% if stats_gerais.total > 0 %}
+                                {% widthratio stats_gerais.concluidas stats_gerais.total 100 %}%
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tendência Temporal (Últimos 30 dias) -->
+    {% if solicitacoes_recentes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Tendência Temporal (Últimos 30 dias)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-center">Solicitações</th>
+                                    <th>Gráfico</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in solicitacoes_recentes %}
+                                <tr>
+                                    <td>{{ item.dia|date:"d/m/Y" }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ item.total }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-danger" 
+                                                 role="progressbar" 
+                                                 style="width: {% widthratio item.total 10 100 %}%;">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Insights e Recomendações -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-info border-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Insights e Recomendações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% if stats_gerais.pendentes > 0 %}
+                        <li class="mb-2">
+                            <strong>Solicitações Pendentes:</strong> 
+                            Há {{ stats_gerais.pendentes }} solicitação(ões) aguardando atendimento. 
+                            {% if stats_gerais.pendentes > 5 %}
+                            Considere priorizar o atendimento para reduzir a fila.
+                            {% endif %}
+                        </li>
+                        {% endif %}
+                        
+                        {% if stats_gerais.tempo_medio_horas > 48 %}
+                        <li class="mb-2">
+                            <strong>Tempo de Atendimento Elevado:</strong> 
+                            O tempo médio está em {{ stats_gerais.tempo_medio_horas|floatformat:1 }} horas. 
+                            Considere reforçar a Equipe Volante ou revisar processos de atendimento.
+                        </li>
+                        {% endif %}
+                        
+                        {% if membros_volante %}
+                        <li class="mb-2">
+                            <strong>Distribuição de Carga:</strong> 
+                            Monitore a distribuição de atendimentos entre os membros da Equipe Volante 
+                            para garantir equilíbrio na carga de trabalho.
+                        </li>
+                        {% endif %}
+                        
+                        <li class="mb-0">
+                            <strong>Análise de Padrões:</strong> 
+                            Use os dados de tendência temporal para identificar períodos de pico 
+                            e planejar recursos adequadamente.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+@media print {
+    .btn, .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        page-break-inside: avoid;
+    }
+}
+</style>
+
+{% endblock %}

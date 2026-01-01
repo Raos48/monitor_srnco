@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ info_fila.nome }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tarefas:dashboard_coordenador' %}">Filas</a></li>
+            <li class="breadcrumb-item active">{{ info_fila.nome }}</li>
+        </ol>
+    </nav>
+
+    <!-- Cabeçalho da Fila -->
+    <div class="card border-{{ info_fila.cor_bootstrap }} mb-4">
+        <div class="card-header bg-{{ info_fila.cor_bootstrap }} text-white">
+            <h3 class="mb-0">
+                <i class="{{ info_fila.icone }}"></i>
+                {{ info_fila.nome_completo }}
+            </h3>
+        </div>
+        <div class="card-body">
+            <p class="lead mb-0">{{ info_fila.descricao }}</p>
+        </div>
+    </div>
+
+    <!-- Alerta de Filtro por Servidor -->
+    {% if servidor_filtrado %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-filter"></i>
+        <strong>Filtro Ativo:</strong> Exibindo apenas tarefas do servidor
+        <a href="{% url 'tarefas:detalhe_servidor' servidor_filtrado.siape %}" class="alert-link">
+            {{ servidor_filtrado.nome_completo }} ({{ servidor_filtrado.siape }})
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Botão de Exportação para Excel -->
+    <div class="mb-3">
+        <a href="{% url 'tarefas:exportar_tarefas_fila_servidor_excel' codigo_fila %}?servidor={{ servidor_filtrado.siape }}"
+           class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Exportar Relatório em Excel
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Barra de Ferramentas de Ações Automatizadas (somente para Coordenadores) -->
+    {% if servidor_filtrado and user.perfil == 'COORDENADOR' %}
+        {% include 'tarefas/includes/barra_ferramentas.html' %}
+    {% endif %}
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h3>{{ total }}</h3>
+                    <p class="text-muted mb-0">Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-danger">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ criticas }}</h3>
+                    <p class="text-muted mb-0">Críticas ({{ percentual_criticas|floatformat:1 }}%)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ regulares }}</h3>
+                    <p class="text-muted mb-0">Regulares</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h3>{{ status_counts.pendentes }}</h3>
+                    <p class="text-muted mb-0">Pendentes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Criticidade</div>
+                <div class="card-body" style="height: 250px;">
+                    <canvas id="chartCriticidade"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Status</div>
+                <div class="card-body" style="height: 250px;">
+                    <canvas id="chartStatus"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking dos 20 Servidores com Mais Tarefas -->
+    {% if ranking_servidores and not servidor_filtrado %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-trophy"></i> Top 20 Servidores com Mais Tarefas nesta Fila
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%;" class="text-center">#</th>
+                            <th style="width: 15%;">SIAPE</th>
+                            <th style="width: 35%;">Nome</th>
+                            <th style="width: 10%;" class="text-center">Total</th>
+                            <th style="width: 10%;" class="text-center">Críticas</th>
+                            <th style="width: 10%;" class="text-center">Regulares</th>
+                            <th style="width: 15%;" class="text-center">% Críticas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for servidor in ranking_servidores %}
+                        <tr>
+                            <!-- Posição -->
+                            <td class="text-center">
+                                {% if forloop.counter <= 3 %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-medal"></i> {{ forloop.counter }}º
+                                </span>
+                                {% else %}
+                                <strong>{{ forloop.counter }}º</strong>
+                                {% endif %}
+                            </td>
+
+                            <!-- SIAPE -->
+                            <td>
+                                <a href="{% url 'tarefas:detalhe_fila' codigo_fila %}?servidor={{ servidor.siape_responsavel__siape }}"
+                                   class="text-decoration-none"
+                                   title="Ver tarefas deste servidor nesta fila">
+                                    {{ servidor.siape_responsavel__siape }}
+                                </a>
+                            </td>
+
+                            <!-- Nome -->
+                            <td>
+                                <a href="{% url 'tarefas:detalhe_servidor' servidor.siape_responsavel__siape %}"
+                                   class="text-decoration-none"
+                                   title="Ver perfil completo do servidor">
+                                    {{ servidor.siape_responsavel__nome_completo|truncatewords:5 }}
+                                </a>
+                            </td>
+
+                            <!-- Total -->
+                            <td class="text-center">
+                                <strong>{{ servidor.total }}</strong>
+                            </td>
+
+                            <!-- Críticas -->
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ servidor.criticas }}</span>
+                            </td>
+
+                            <!-- Regulares -->
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ servidor.regulares }}</span>
+                            </td>
+
+                            <!-- Percentual Críticas -->
+                            <td class="text-center">
+                                {% if servidor.percentual_criticas >= 50 %}
+                                <span class="badge bg-danger fs-6">{{ servidor.percentual_criticas }}%</span>
+                                {% elif servidor.percentual_criticas >= 30 %}
+                                <span class="badge bg-warning text-dark fs-6">{{ servidor.percentual_criticas }}%</span>
+                                {% else %}
+                                <span class="badge bg-success fs-6">{{ servidor.percentual_criticas }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted small">
+            <i class="fas fa-info-circle"></i>
+            Clique no SIAPE para ver as tarefas do servidor nesta fila | Clique no nome para ver o perfil completo
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter"></i> Filtros
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Criticidade</label>
+                    <select name="criticidade" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="CRÍTICA" {% if filtro_criticidade == 'CRÍTICA' %}selected{% endif %}>Crítica</option>
+                        <option value="REGULAR" {% if filtro_criticidade == 'REGULAR' %}selected{% endif %}>Regular</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="Pendente" {% if filtro_status == 'Pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="Cumprimento de exigência" {% if filtro_status == 'Cumprimento de exigência' %}selected{% endif %}>Cumprimento</option>
+                    </select>
+                </div>
+                {% if servidores_fila %}
+                <div class="col-md-3">
+                    <label class="form-label">Servidor</label>
+                    <select name="servidor" class="form-select">
+                        <option value="">Todos</option>
+                        {% for servidor in servidores_fila %}
+                        <option value="{{ servidor.siape }}" {% if filtro_servidor == servidor.siape %}selected{% endif %}>
+                            {{ servidor.nome_completo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                    <a href="{% url 'tarefas:detalhe_fila' codigo_fila %}" class="btn btn-secondary">Limpar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Tarefas -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-list"></i> Tarefas ({{ total }})
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%;">Criticidade</th>
+                            <th style="width: 10%;">Protocolo</th>
+                            <th style="width: 15%;">Serviço</th>
+                            <th style="width: 8%;">Status</th>
+                            <th style="width: 12%;">Servidor</th>
+                            <th style="width: 20%;">Alerta / Descrição</th>
+                            <th style="width: 10%;">Indicadores</th>
+                            <th style="width: 8%;">Dias Pend.</th>
+                            <th style="width: 12%;">Distribuição</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tarefa in tarefas %}
+                        <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
+                            <!-- Criticidade -->
+                            <td class="text-center">
+                                {{ tarefa.badge_html_criticidade|safe }}
+                            </td>
+
+                            <!-- Protocolo (Clicável - Link Externo INSS) -->
+                            <td>
+                                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}"
+                                   target="_blank"
+                                   class="text-decoration-none"
+                                   title="Abrir tarefa no sistema INSS">
+                                    {{ tarefa.numero_protocolo_tarefa }}
+                                    <i class="fas fa-external-link-alt fa-xs text-muted"></i>
+                                </a>
+                            </td>
+
+                            <!-- Serviço -->
+                            <td>
+                                <small>
+                                    {{ tarefa.nome_servico|truncatewords:6 }}
+                                    {% if tarefa.servico_excluido %}
+                                    <span class="badge bg-warning text-dark" title="Serviço excluído da pauta">
+                                        <i class="fas fa-ban"></i> Excluído
+                                    </span>
+                                    {% endif %}
+                                </small>
+                            </td>
+
+                            <!-- Status -->
+                            <td><small>{{ tarefa.status_tarefa }}</small></td>
+
+                            <!-- Servidor -->
+                            <td>
+                                {% if tarefa.siape_responsavel %}
+                                <a href="{% url 'tarefas:detalhe_servidor' tarefa.siape_responsavel.siape %}"
+                                   class="text-decoration-none">
+                                    <small>{{ tarefa.siape_responsavel.nome_completo|truncatewords:3 }}</small>
+                                </a>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+
+                            <!-- Alerta / Descrição -->
+                            <td>
+                                <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}"
+                                   class="text-decoration-none">
+                                    <small>{{ tarefa.descricao_criticidade_calculado|truncatewords:12 }}</small>
+                                </a>
+                            </td>
+
+                            <!-- Indicadores -->
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    {% if tarefa.justificativa_ativa %}
+                                    <span class="badge bg-info" title="Possui justificativa ativa">
+                                        <i class="fas fa-file-alt"></i> Justif.
+                                    </span>
+                                    {% endif %}
+
+                                    {% if tarefa.solicitacao_ajuda %}
+                                    <span class="badge bg-warning text-dark" title="Solicitação de ajuda">
+                                        <i class="fas fa-hand-paper"></i> SOS
+                                    </span>
+                                    {% endif %}
+
+                                    {% if tarefa.subtarefas_pendentes > 0 %}
+                                    <span class="badge bg-secondary" title="{{ tarefa.subtarefas_pendentes }} subtarefa(s) pendente(s)">
+                                        <i class="fas fa-tasks"></i> {{ tarefa.subtarefas_pendentes }}
+                                    </span>
+                                    {% endif %}
+
+                                    {% if tarefa.tarefa_reaberta %}
+                                    <span class="badge bg-danger" title="Tarefa reaberta">
+                                        <i class="fas fa-redo"></i> Reab.
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Dias Pendente -->
+                            <td class="text-center">
+                                {% if tarefa.nivel_criticidade_calculado == 'CRÍTICA' %}
+                                <span class="badge bg-danger">
+                                    {{ tarefa.dias_pendente_criticidade_calculado }} dias
+                                </span>
+                                {% else %}
+                                <span class="text-muted">
+                                    {{ tarefa.dias_pendente_criticidade_calculado }} dias
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Distribuição -->
+                            <td>
+                                <small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y" }}</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                Nenhuma tarefa encontrada
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginação (somente quando NÃO filtrar por servidor) -->
+            {% if tarefas.has_other_pages %}
+            <div class="p-3">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if tarefas.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tarefas.previous_page_number }}{% if filtro_criticidade %}&criticidade={{ filtro_criticidade }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                Página {{ tarefas.number }} de {{ tarefas.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if tarefas.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tarefas.next_page_number }}{% if filtro_criticidade %}&criticidade={{ filtro_criticidade }}{% endif %}{% if filtro_status %}&status={{ filtro_status }}{% endif %}">
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico de Criticidade
+new Chart(document.getElementById('chartCriticidade'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ grafico_criticidade.labels|safe }},
+        datasets: [{
+            data: {{ grafico_criticidade.data|safe }},
+            backgroundColor: {{ grafico_criticidade.colors|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true
+    }
+});
+
+// Gráfico de Status
+new Chart(document.getElementById('chartStatus'), {
+    type: 'bar',
+    data: {
+        labels: {{ grafico_status.labels|safe }},
+        datasets: [{
+            label: 'Tarefas',
+            data: {{ grafico_status.data|safe }},
+            backgroundColor: {{ grafico_status.colors|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+
+<style>
+.border-purple { border-color: #6f42c1 !important; }
+.border-orange { border-color: #fd7e14 !important; }
+.bg-purple { background-color: #6f42c1 !important; }
+.bg-orange { background-color: #fd7e14 !important; }
+</style>
+{% endblock %}

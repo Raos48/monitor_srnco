@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tarefa {{ info_basica.protocolo }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- ============================================
+         CABEÇALHO COM PROTOCOLO CLICÁVEL
+         ============================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-file-alt"></i>
+                Tarefa: 
+                <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ info_basica.protocolo }}" 
+                   target="_blank" 
+                   class="protocolo-link"
+                   title="Abrir tarefa no sistema INSS">
+                    {{ info_basica.protocolo }}
+                    <i class="fas fa-external-link-alt ms-2" style="font-size: 0.7em;"></i>
+                </a>
+            </h1>
+            <p class="text-muted mb-0">{{ info_basica.servico }}</p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:lista_tarefas' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- ============================================
+         CARD PRINCIPAL DE CRITICIDADE (IGUAL À IMAGEM)
+         ============================================ -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card" style="border-left: 5px solid {{ criticidade.cor }}; background-color: {{ criticidade.cor }}15;">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <h2 style="color: {{ criticidade.cor }}; margin-bottom: 1rem;">
+                                {{ criticidade.emoji }} CRITICIDADE: {{ criticidade.nivel|upper }}
+                            </h2>
+                            
+                            <!-- Tabela de Informações Principais -->
+                            <table class="table table-sm mb-3" style="background-color: white;">
+                                <tbody>
+                                    <tr>
+                                        <td style="width: 30%; font-weight: 600; padding: 12px;">
+                                            Regra Aplicada:
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <span class="badge badge-lg" style="background-color: {{ criticidade.cor }}; color: white; font-size: 1rem; padding: 8px 16px;">
+                                                {{ criticidade.regra }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600; padding: 12px;">
+                                            Pontuação:
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <strong style="color: {{ criticidade.cor }}; font-size: 1.1rem;">
+                                                {{ criticidade.pontuacao }} pontos
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600; padding: 12px;">
+                                            Dias Pendente:
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <strong style="font-size: 1.1rem;">{{ criticidade.dias_pendente }} dias</strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600; padding: 12px;">
+                                            Prazo Limite:
+                                        </td>
+                                        <td style="padding: 12px;">
+                                            <strong style="font-size: 1.1rem;">{{ criticidade.prazo_limite }} dias</strong>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Alerta -->
+                            <div class="alert" style="background-color: white; border-left: 3px solid {{ criticidade.cor }}; margin-bottom: 1rem;">
+                                <div style="display: flex; align-items: start;">
+                                    <i class="fas fa-exclamation-circle" style="color: {{ criticidade.cor }}; margin-right: 10px; margin-top: 2px;"></i>
+                                    <div>
+                                        <strong style="color: {{ criticidade.cor }};">📋 Alerta:</strong><br>
+                                        <span style="color: #333;">{{ criticidade.alerta }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Descrição Detalhada -->
+                            <div class="alert" style="background-color: white; border-left: 3px solid {{ criticidade.cor }};">
+                                <div style="display: flex; align-items: start;">
+                                    <i class="fas fa-info-circle" style="color: {{ criticidade.cor }}; margin-right: 10px; margin-top: 2px;"></i>
+                                    <div>
+                                        <strong style="color: {{ criticidade.cor }};">📝 Descrição Detalhada:</strong><br>
+                                        <span style="color: #333;">{{ criticidade.descricao }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Último Cálculo -->
+                            <div style="background-color: #e7f3ff; padding: 12px; border-radius: 5px; margin-top: 1rem;">
+                                <i class="fas fa-clock"></i>
+                                <strong>Último cálculo:</strong> 
+                                {{ datas.calculo_criticidade|date:"d/m/Y às H:i:s"|default:"Não calculado" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         LAYOUT EM 2 COLUNAS
+         ============================================ -->
+    <div class="row">
+        <!-- COLUNA ESQUERDA: DETALHES DO CÁLCULO -->
+        <div class="col-lg-7">
+            <div class="card-custom mb-4">
+                <div class="card-header-custom">
+                    <h3 class="card-title-custom">
+                        <i class="fas fa-calculator"></i>
+                        Detalhes do Cálculo de Criticidade
+                    </h3>
+                </div>
+                <div class="card-body-custom">
+                    <h5><i class="{{ regra_info.icon }} text-primary me-2"></i>{{ regra_info.nome }}</h5>
+                    <p class="text-muted">{{ regra_info.descricao }}</p>
+                    
+                    <hr>
+                    
+                    <strong><i class="fas fa-check-square text-primary"></i> Condições Aplicadas:</strong>
+                    <ul class="list-unstyled ms-3 mt-2">
+                        {% for condicao in regra_info.condicoes %}
+                            <li><i class="fas fa-check text-success me-2"></i> {{ condicao }}</li>
+                        {% empty %}
+                            <li><i class="fas fa-info-circle text-muted me-2"></i> Nenhuma condição específica.</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <strong><i class="fas fa-cogs text-primary"></i> Cálculo da Regra:</strong>
+                    <pre class="bg-light p-3 rounded mt-2"><code>{{ regra_info.calculo|default:"N/A" }}</code></pre>
+                    
+                    <strong><i class="fas fa-clipboard-list text-primary"></i> Classificação:</strong>
+                    <ul class="list-unstyled ms-3 mt-2">
+                        {% for item in regra_info.classificacao %}
+                            <li><i class="fas fa-chevron-right text-muted me-2"></i> {{ item }}</li>
+                        {% empty %}
+                             <li><i class="fas fa-chevron-right text-muted me-2"></i> NENHUMA</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA DIREITA: INFORMAÇÕES DA TAREFA -->
+        <div class="col-lg-5">
+            
+            <!-- Card: Informações Básicas -->
+            <div class="card-custom mb-4">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom mb-0">
+                        <i class="fas fa-info-circle"></i> Informações da Tarefa
+                    </h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Status</small>
+                        <strong>{{ info_basica.status }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Servidor</small>
+                        <strong>{{ info_basica.servidor|truncatechars:30 }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">SIAPE</small>
+                        <strong>
+                            {% if info_basica.siape != 'N/A' %}
+                                <a href="{% url 'tarefas:detalhe_servidor' info_basica.siape %}" class="text-primary">
+                                    {{ info_basica.siape }}
+                                </a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">GEX</small>
+                        <strong>{{ info_basica.gex|truncatechars:35 }}</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card: Datas Relevantes -->
+            <div class="card-custom mb-4">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom mb-0">
+                        <i class="fas fa-calendar-alt"></i> Datas Relevantes
+                    </h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Distribuição</small>
+                        <strong>{{ datas.distribuicao|date:"d/m/Y"|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Última Atualização</small>
+                        <strong>{{ datas.ultima_atualizacao|date:"d/m/Y"|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Prazo</small>
+                        <strong>{{ datas.prazo|date:"d/m/Y"|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Início Exigência</small>
+                        <strong>{{ datas.inicio_exigencia|date:"d/m/Y"|default:"-" }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Fim Exigência</small>
+                        <strong>{{ datas.fim_exigencia|date:"d/m/Y"|default:"-" }}</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Card: Tempos -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom mb-0">
+                        <i class="fas fa-hourglass-half"></i> Tempos (em dias)
+                    </h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Pendência (Total)</small>
+                        <span class="badge bg-secondary">{{ tempos.pendencia }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Com Servidor (Líquido)</small>
+                        <span class="badge bg-info text-dark">{{ tempos.com_servidor }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Exigência (Total)</small>
+                        <span class="badge bg-secondary">{{ tempos.exigencia }}</span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================
+         LEGENDA
+         ============================================ -->
+    <div class="mt-4">
+        <small class="text-muted">
+            <strong>Legenda de Criticidade:</strong>
+            <span class="badge bg-danger ms-2">🔴 CRÍTICA - Ação imediata necessária</span>
+            <span class="badge bg-warning text-dark ms-2">🟠 ALTA - Prazo excedido</span>
+            <span class="badge" style="background-color: #ffc107; color: black;" class="ms-2">🟡 MÉDIA - Próximo do vencimento</span>
+            <span class="badge bg-success ms-2">🟢 BAIXA - Em observação</span>
+            <span class="badge bg-secondary ms-2">⚪ NORMAL - Dentro do prazo</span>
+        </small>
+    </div>
+
+</div>
+
+<!-- ============================================
+     ESTILOS CUSTOMIZADOS
+     ============================================ -->
+<style>
+.protocolo-link {
+    color: #0e2238;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.protocolo-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.badge-lg {
+    font-size: 1rem !important;
+    padding: 8px 16px !important;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Minhas Solicitações de Ajuda - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-hands-helping"></i> Minhas Solicitações de Ajuda
+            </h1>
+            <p class="text-muted mb-0">
+                Acompanhe o andamento das suas solicitações de ajuda
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:lista_tarefas' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total</h6>
+                            <h3 class="mb-0">{{ stats.total }}</h3>
+                        </div>
+                        <div class="fs-1 text-primary">
+                            <i class="fas fa-list"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Pendentes</h6>
+                            <h3 class="mb-0 text-warning">{{ stats.pendentes }}</h3>
+                        </div>
+                        <div class="fs-1 text-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Em Atendimento</h6>
+                            <h3 class="mb-0 text-info">{{ stats.em_atendimento }}</h3>
+                        </div>
+                        <div class="fs-1 text-info">
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Concluídas</h6>
+                            <h3 class="mb-0 text-success">{{ stats.concluidas }}</h3>
+                        </div>
+                        <div class="fs-1 text-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Solicitações -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> Histórico de Solicitações
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if solicitacoes %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 12%;">Data</th>
+                            <th style="width: 12%;">Protocolo</th>
+                            <th style="width: 35%;">Descrição</th>
+                            <th style="width: 15%;">Status</th>
+                            <th style="width: 18%;">Atendido Por</th>
+                            <th style="width: 4%;" class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sol in solicitacoes %}
+                        <tr>
+                            <td>
+                                <small>{{ sol.data_solicitacao|date:"d/m/Y H:i" }}</small>
+                            </td>
+
+                            <td>
+                                <a href="{% url 'tarefas:detalhe_tarefa' protocolo=sol.protocolo_original %}"
+                                   class="text-decoration-none"
+                                   title="Ver tarefa">
+                                    <code>{{ sol.protocolo_original }}</code>
+                                </a>
+                            </td>
+                            
+                            <td>
+                                <small>{{ sol.descricao|truncatewords:12 }}</small>
+                            </td>
+                            
+                            <td>
+                                {% if sol.status == 'PENDENTE' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock"></i> {{ sol.get_status_display }}
+                                </span>
+                                {% elif sol.status == 'EM_ATENDIMENTO' %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-user-clock"></i> {{ sol.get_status_display }}
+                                </span>
+                                {% elif sol.status == 'CONCLUIDA' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> {{ sol.get_status_display }}
+                                </span>
+                                {% elif sol.status == 'CANCELADA' %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-ban"></i> {{ sol.get_status_display }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            
+                            <td>
+                                {% if sol.atendido_por %}
+                                <small>{{ sol.atendido_por.nome_completo|truncatewords:2 }}</small>
+                                <br>
+                                <small class="text-muted">{{ sol.data_atendimento|date:"d/m/Y" }}</small>
+                                {% else %}
+                                <small class="text-muted">Aguardando...</small>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-center">
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#modalSol{{ sol.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginação -->
+            {% if solicitacoes.has_other_pages %}
+            <div class="card-footer bg-white">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if solicitacoes.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ solicitacoes.previous_page_number }}">
+                                Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Página {{ solicitacoes.number }} de {{ solicitacoes.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if solicitacoes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ solicitacoes.next_page_number }}">
+                                Próxima
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhuma solicitação encontrada</h5>
+                <p class="text-muted">Você ainda não solicitou ajuda para nenhuma tarefa.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modais com detalhes das solicitações -->
+{% for sol in solicitacoes %}
+<div class="modal fade" id="modalSol{{ sol.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-hands-helping"></i> Detalhes da Solicitação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Protocolo:</strong><br>
+                        <code>{{ sol.protocolo_original }}</code>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Data da Solicitação:</strong><br>
+                        {{ sol.data_solicitacao|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Status:</strong><br>
+                        {% if sol.status == 'PENDENTE' %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-clock"></i> {{ sol.get_status_display }}
+                        </span>
+                        {% elif sol.status == 'EM_ATENDIMENTO' %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-user-clock"></i> {{ sol.get_status_display }}
+                        </span>
+                        {% elif sol.status == 'CONCLUIDA' %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check"></i> {{ sol.get_status_display }}
+                        </span>
+                        {% elif sol.status == 'CANCELADA' %}
+                        <span class="badge bg-secondary">
+                            <i class="fas fa-ban"></i> {{ sol.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Descrição do Problema:</strong>
+                    <div class="card bg-light mt-2">
+                        <div class="card-body">
+                            {{ sol.descricao|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                
+                {% if sol.atendido_por %}
+                <hr>
+                <div class="alert alert-info mb-0">
+                    <h6><i class="fas fa-info-circle"></i> Atendimento</h6>
+                    <p class="mb-1">
+                        <strong>Atendido por:</strong> {{ sol.atendido_por.nome_completo }}<br>
+                        <strong>Data de atendimento:</strong> {{ sol.data_atendimento|date:"d/m/Y H:i" }}
+                    </p>
+                    {% if sol.observacoes_atendimento %}
+                    <p class="mb-0">
+                        <strong>Observações:</strong><br>
+                        {{ sol.observacoes_atendimento|linebreaks }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+</style>
+
+{% endblock %}

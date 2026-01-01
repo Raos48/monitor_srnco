@@ -3,64 +3,715 @@
 
 {% block title %}Importar Tarefas via CSV{% endblock %}
 
+{% block extra_head %}
+<style>
+    .upload-area {
+        border: 2px dashed #cbd5e0;
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-area:hover {
+        border-color: #4299e1;
+        background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(66, 153, 225, 0.15);
+    }
+
+    .upload-area.dragover {
+        border-color: #48bb78;
+        background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+        transform: scale(1.02);
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        color: #a0aec0;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .upload-area:hover .upload-icon {
+        color: #4299e1;
+        transform: scale(1.1);
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .file-info {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #edf2f7;
+        border-radius: 8px;
+        animation: slideIn 0.3s ease;
+    }
+
+    .file-info.show {
+        display: block;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .progress-container {
+        display: none;
+        margin-top: 2rem;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .progress-container.show {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .progress {
+        height: 30px;
+        border-radius: 15px;
+        background: #e2e8f0;
+        overflow: visible;
+        position: relative;
+    }
+
+    .progress-bar {
+        border-radius: 15px;
+        background: linear-gradient(90deg, #4299e1 0%, #48bb78 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: white;
+        transition: width 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .progress-bar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .import-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 10px;
+        border-left: 4px solid;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        animation: scaleIn 0.5s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .stat-card.created { border-color: #48bb78; }
+    .stat-card.updated { border-color: #4299e1; }
+    .stat-card.errors { border-color: #f56565; }
+    .stat-card.total { border-color: #9f7aea; }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .history-item {
+        padding: 1rem;
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+        animation: slideInRight 0.5s ease;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .history-item:hover {
+        background: #f7fafc;
+        border-left-color: #4299e1;
+        transform: translateX(5px);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
+
+    .status-badge.processing {
+        background: #fef5e7;
+        color: #f59e0b;
+    }
+
+    .status-badge.success {
+        background: #f0fff4;
+        color: #48bb78;
+    }
+
+    .status-badge.error {
+        background: #fff5f5;
+        color: #f56565;
+    }
+
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0,0,0,0.1);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .btn-import {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        color: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+    }
+
+    .btn-import:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(66, 153, 225, 0.4);
+        background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+    }
+
+    .btn-import:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .timeline-dot {
+        width: 12px;
+        height: 12px;
+        background: #4299e1;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.5rem;
+        animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes ping {
+        75%, 100% {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: #4299e1;
+        position: absolute;
+        animation: confetti-fall 3s linear forwards;
+        z-index: 9999;
+    }
+
+    @keyframes confetti-fall {
+        to {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">Importação de Dados de Tarefas</h1>
+    <h1 class="page-title">
+        <i class="bi bi-cloud-upload"></i> Importação de Dados de Tarefas
+    </h1>
     <p class="page-subtitle">Faça o upload de um arquivo CSV para criar ou atualizar as tarefas no sistema.</p>
 </div>
 
 <div class="row">
-    <div class="col-md-7">
+    <div class="col-lg-7">
         <div class="card-custom">
             <div class="card-header-custom">
-                <h2 class="card-title-custom">Enviar Novo Arquivo</h2>
+                <h2 class="card-title-custom">
+                    <i class="bi bi-upload"></i> Enviar Novo Arquivo
+                </h2>
             </div>
             <div class="card-body-custom">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
                     {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.arquivo_csv.id_for_label }}" class="form-label">{{ form.arquivo_csv.label }}</label>
-                        {{ form.arquivo_csv }}
-                        <div class="form-text">{{ form.arquivo_csv.help_text }}</div>
+
+                    <div class="upload-area" id="uploadArea">
+                        <i class="bi bi-cloud-arrow-up upload-icon"></i>
+                        <h4>Arraste o arquivo CSV aqui</h4>
+                        <p class="text-muted">ou clique para selecionar</p>
+                        <input type="file"
+                               name="{{ form.arquivo_csv.name }}"
+                               id="{{ form.arquivo_csv.id_for_label }}"
+                               class="file-input"
+                               accept=".csv">
+
+                        <div class="file-info" id="fileInfo">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 2rem; color: #4299e1;"></i>
+                                    <div>
+                                        <strong id="fileName"></strong>
+                                        <br>
+                                        <small class="text-muted" id="fileSize"></small>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="removeFile">
+                                    <i class="bi bi-x-circle"></i> Remover
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary-custom">
-                        <i class="bi bi-upload"></i> Iniciar Importação
-                    </button>
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-import" id="submitBtn" disabled>
+                            <i class="bi bi-upload"></i> Iniciar Importação
+                        </button>
+                    </div>
                 </form>
+
+                <!-- Progress Container -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="alert alert-info mb-3" style="border-left: 4px solid #4299e1;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-text" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <strong>Arquivo:</strong> <span id="processingFileName"></span><br>
+                                <small class="text-muted">Tamanho: <span id="processingFileSize"></span></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-badge processing mb-3">
+                        <div class="spinner"></div>
+                        <span>Processando importação...</span>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" id="progressBar" style="width: 0%">
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="import-stats" id="importStats">
+                        <div class="stat-card total">
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-card created">
+                            <div class="stat-value" id="statCreated">0</div>
+                            <div class="stat-label">Criadas</div>
+                        </div>
+                        <div class="stat-card updated">
+                            <div class="stat-value" id="statUpdated">0</div>
+                            <div class="stat-label">Atualizadas</div>
+                        </div>
+                        <div class="stat-card errors">
+                            <div class="stat-value" id="statErrors">0</div>
+                            <div class="stat-label">Erros</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-5">
+
+    <div class="col-lg-5">
         <div class="card-custom">
             <div class="card-header-custom">
-                <h2 class="card-title-custom">Últimas Importações</h2>
+                <h2 class="card-title-custom">
+                    <i class="bi bi-clock-history"></i> Últimas Importações
+                </h2>
             </div>
             <div class="card-body-custom">
                 {% if ultimas_importacoes %}
-                <ul class="list-group list-group-flush">
+                <div class="list-group list-group-flush">
                     {% for registro in ultimas_importacoes %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="bi bi-file-earmark-check-fill text-success"></i>
-                            <strong>{{ registro.usuario.nome_completo|default:"N/A" }}</strong>
-                            <small class="text-muted">em {{ registro.data_importacao|date:"d/m/Y H:i" }}</small>
-                            <br>
-                            <small>Arquivo: <em>{{ registro.nome_arquivo }}</em></small>
+                    <div class="list-group-item history-item" style="animation-delay: {{ forloop.counter0|add:"00" }}ms">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="timeline-dot"></span>
+                                <div>
+                                    <strong class="d-block">{{ registro.usuario.nome_completo|default:"N/A" }}</strong>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> {{ registro.data_importacao|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
                         </div>
-                        <span class="badge bg-primary rounded-pill">
-                            {{ registro.registros_criados }}/{{ registro.registros_atualizados }}
-                            <i class="bi bi-info-circle" title="Criadas / Atualizadas"></i>
-                        </span>
-                    </li>
+                        <div class="ms-4">
+                            <small class="d-block mb-2">
+                                <i class="bi bi-file-earmark"></i>
+                                <em>{{ registro.nome_arquivo }}</em>
+                            </small>
+
+                            {% if registro.status == 'PENDING' %}
+                                <span class="badge bg-secondary mb-2">
+                                    <i class="bi bi-clock"></i> Aguardando processamento
+                                </span>
+                            {% elif registro.status == 'PROCESSING' %}
+                                <span class="badge bg-warning mb-2">
+                                    <i class="bi bi-hourglass-split"></i> Processando... {{ registro.progresso_percentual|floatformat:1 }}%
+                                </span>
+                            {% elif registro.status == 'COMPLETED' %}
+                                <span class="badge bg-success mb-2">
+                                    <i class="bi bi-check-circle"></i> Concluída
+                                </span>
+                            {% elif registro.status == 'FAILED' %}
+                                <span class="badge bg-danger mb-2">
+                                    <i class="bi bi-x-circle"></i> Falhou
+                                </span>
+                            {% endif %}
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-plus-circle"></i> {{ registro.registros_criados }} criadas
+                                </span>
+                                <span class="badge bg-info">
+                                    <i class="bi bi-arrow-repeat"></i> {{ registro.registros_atualizados }} atualizadas
+                                </span>
+                                {% if registro.usuarios_criados > 0 %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-person-plus"></i> {{ registro.usuarios_criados }} usuários
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
                 {% else %}
-                <p class="text-muted text-center">Nenhum registro de importação encontrado.</p>
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e0;"></i>
+                    <p class="text-muted mt-3">Nenhum registro de importação encontrado.</p>
+                </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Informações e Ajuda -->
+        <div class="card-custom mt-3">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">
+                    <i class="bi bi-info-circle"></i> Informações
+                </h2>
+            </div>
+            <div class="card-body-custom">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <small>Formatos aceitos: CSV</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <small>Codificação: UTF-8</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        <small>Separador: vírgula (,)</small>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle text-success"></i>
+                        <small>Tamanho máximo: 10MB</small>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('{{ form.arquivo_csv.id_for_label }}');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFileBtn = document.getElementById('removeFile');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const progressContainer = document.getElementById('progressContainer');
+
+    // Click to select file
+    uploadArea.addEventListener('click', function(e) {
+        if (e.target !== removeFileBtn && !removeFileBtn.contains(e.target)) {
+            fileInput.click();
+        }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', function(e) {
+        handleFile(this.files[0]);
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].name.endsWith('.csv')) {
+            fileInput.files = files;
+            handleFile(files[0]);
+        } else {
+            alert('Por favor, selecione um arquivo CSV válido.');
+        }
+    });
+
+    // Handle file selection
+    function handleFile(file) {
+        if (file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Remove file
+    removeFileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fileInput.value = '';
+        fileInfo.classList.remove('show');
+        submitBtn.disabled = true;
+    });
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Animate value counter
+    function animateValue(id, start, end, duration) {
+        const element = document.getElementById(id);
+        const range = end - start;
+        const increment = range / (duration / 16); // 60fps
+        let current = start;
+
+        const timer = setInterval(function() {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            element.textContent = Math.floor(current);
+        }, 16);
+    }
+
+    // Create confetti effect
+    function createConfetti() {
+        const colors = ['#4299e1', '#48bb78', '#f59e0b', '#9f7aea', '#f56565'];
+        const container = document.querySelector('.card-body-custom');
+
+        for (let i = 0; i < 50; i++) {
+            setTimeout(function() {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                container.appendChild(confetti);
+
+                setTimeout(function() {
+                    confetti.remove();
+                }, 3000);
+            }, i * 30);
+        }
+    }
+
+    // Form submission ASSÍNCRONO com monitoramento em tempo real
+    uploadForm.addEventListener('submit', function(e) {
+        // Não previne o comportamento padrão - deixa o form enviar normalmente
+        // O servidor retornará um redirect com mensagem de sucesso
+        // Após o redirect, a página recarrega e mostra as importações em andamento
+    });
+
+    // Monitorar importações em andamento ao carregar a página
+    {% if ultimas_importacoes %}
+        {% for registro in ultimas_importacoes %}
+            {% if registro.status == 'PENDING' or registro.status == 'PROCESSING' %}
+                monitorarImportacao({{ registro.id }});
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    // Função para monitorar uma importação em tempo real
+    function monitorarImportacao(registroId) {
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusBadge = document.querySelector('.status-badge');
+
+        // Mostrar container de progresso
+        progressContainer.classList.add('show');
+
+        // Polling a cada 2 segundos
+        const monitorInterval = setInterval(function() {
+            fetch(`/importar/status/${registroId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Atualizar barra de progresso
+                        progressBar.style.width = data.progresso + '%';
+                        progressText.textContent = data.progresso.toFixed(1) + '%';
+
+                        // Atualizar estatísticas
+                        document.getElementById('statTotal').textContent = data.total_linhas;
+                        document.getElementById('statCreated').textContent = data.criados;
+                        document.getElementById('statUpdated').textContent = data.atualizados;
+                        document.getElementById('statErrors').textContent = 0;
+
+                        // Atualizar badge de status
+                        if (data.status === 'PROCESSING') {
+                            statusBadge.classList.remove('success', 'error');
+                            statusBadge.classList.add('processing');
+                            statusBadge.innerHTML = '<div class="spinner"></div> <span>Processando (' + data.linhas_processadas + ' / ' + data.total_linhas + ')</span>';
+                        }
+
+                        // Se completou ou falhou, parar monitoramento
+                        if (data.status === 'COMPLETED') {
+                            clearInterval(monitorInterval);
+                            statusBadge.classList.remove('processing', 'error');
+                            statusBadge.classList.add('success');
+                            statusBadge.innerHTML = '<i class="bi bi-check-circle"></i> <span>Importação concluída!</span>';
+                            createConfetti();
+
+                            // Recarregar página após 3 segundos
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 3000);
+                        }
+
+                        if (data.status === 'FAILED') {
+                            clearInterval(monitorInterval);
+                            statusBadge.classList.remove('processing', 'success');
+                            statusBadge.classList.add('error');
+                            statusBadge.innerHTML = '<i class="bi bi-x-circle"></i> <span>Erro na importação</span>';
+
+                            // Mostrar mensagem de erro se houver
+                            if (data.mensagem_erro) {
+                                console.error('Erro:', data.mensagem_erro);
+                            }
+
+                            // Esconder progresso após 10 segundos
+                            setTimeout(function() {
+                                progressContainer.classList.remove('show');
+                            }, 10000);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao monitorar importação:', error);
+                    clearInterval(monitorInterval);
+                });
+        }, 2000); // Atualiza a cada 2 segundos
+    }
+});
+</script>
 {% endblock %}

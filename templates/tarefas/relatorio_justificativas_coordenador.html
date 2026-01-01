@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Relatório de Justificativas - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-chart-bar"></i> Relatório de Justificativas
+            </h1>
+            <p class="text-muted mb-0">
+                Análise estatística completa do sistema de justificativas
+            </p>
+        </div>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary btn-sm me-2">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de Justificativas</h6>
+                            <h2 class="mb-0">{{ stats_gerais.total_justificativas }}</h2>
+                        </div>
+                        <div class="fs-1 text-primary">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Pendentes</h6>
+                            <h2 class="mb-0 text-warning">{{ stats_gerais.pendentes }}</h2>
+                        </div>
+                        <div class="fs-1 text-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Aprovadas</h6>
+                            <h2 class="mb-0 text-success">{{ stats_gerais.aprovadas }}</h2>
+                        </div>
+                        <div class="fs-1 text-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Reprovadas</h6>
+                            <h2 class="mb-0 text-danger">{{ stats_gerais.reprovadas }}</h2>
+                        </div>
+                        <div class="fs-1 text-danger">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI: Percentual de Tarefas Justificadas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-percentage"></i> Percentual de Tarefas Justificadas
+                            </h5>
+                            <p class="text-muted mb-0">
+                                {{ stats_gerais.tarefas_com_justificativa }} de {{ stats_gerais.total_tarefas }} tarefas possuem justificativa aprovada
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <h1 class="display-3 mb-0 text-primary">
+                                {{ stats_gerais.percentual_justificadas }}%
+                            </h1>
+                        </div>
+                    </div>
+                    <div class="progress mt-3" style="height: 25px;">
+                        <div class="progress-bar bg-primary" 
+                             role="progressbar" 
+                             style="width: {{ stats_gerais.percentual_justificadas }}%;">
+                            {{ stats_gerais.percentual_justificadas }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Ranking de Servidores -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy"></i> Ranking de Servidores com Mais Justificativas
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;" class="text-center">#</th>
+                                    <th style="width: 30%;">Servidor</th>
+                                    <th style="width: 10%;" class="text-center">Total</th>
+                                    <th style="width: 10%;" class="text-center">Aprovadas</th>
+                                    <th style="width: 10%;" class="text-center">Pendentes</th>
+                                    <th style="width: 10%;" class="text-center">Tarefas</th>
+                                    <th style="width: 10%;" class="text-center">% Just.</th>
+                                    <th style="width: 15%;">Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for servidor in servidores_ranking %}
+                                <tr>
+                                    <td class="text-center">
+                                        {% if forloop.counter <= 3 %}
+                                        <span class="badge bg-warning text-dark">{{ forloop.counter }}</span>
+                                        {% else %}
+                                        {{ forloop.counter }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ servidor.nome_completo|truncatewords:4 }}</strong>
+                                        <br>
+                                        <small class="text-muted">SIAPE: {{ servidor.siape }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ servidor.total_justificativas }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ servidor.justificativas_aprovadas }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning text-dark">{{ servidor.justificativas_pendentes }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ servidor.total_tarefas }}
+                                    </td>
+                                    <td class="text-center">
+                                        <strong>{{ servidor.percentual }}%</strong>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar 
+                                                {% if servidor.percentual >= 50 %}bg-danger
+                                                {% elif servidor.percentual >= 30 %}bg-warning
+                                                {% else %}bg-success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ servidor.percentual }}%;">
+                                                {{ servidor.percentual }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        Nenhuma justificativa registrada
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuição por Tipo -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Distribuição por Tipo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for tipo in tipos_distribuicao %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small><strong>{{ tipo.tipo_justificativa__nome|truncatewords:3 }}</strong></small>
+                            <small class="text-muted">{{ tipo.total }} ({{ tipo.total|floatformat:0 }})</small>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {% widthratio tipo.aprovadas tipo.total 100 %}%;"
+                                 title="Aprovadas: {{ tipo.aprovadas }}">
+                                {% if tipo.aprovadas > 0 %}{{ tipo.aprovadas }}{% endif %}
+                            </div>
+                            <div class="progress-bar bg-warning" 
+                                 style="width: {% widthratio tipo.pendentes tipo.total 100 %}%;"
+                                 title="Pendentes: {{ tipo.pendentes }}">
+                                {% if tipo.pendentes > 0 %}{{ tipo.pendentes }}{% endif %}
+                            </div>
+                            <div class="progress-bar bg-danger" 
+                                 style="width: {% widthratio tipo.reprovadas tipo.total 100 %}%;"
+                                 title="Reprovadas: {{ tipo.reprovadas }}">
+                                {% if tipo.reprovadas > 0 %}{{ tipo.reprovadas }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-success">✓ {{ tipo.aprovadas }}</small>
+                            <small class="text-warning">⏳ {{ tipo.pendentes }}</small>
+                            <small class="text-danger">✗ {{ tipo.reprovadas }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p class="mb-0">Nenhum dado disponível</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tendência Temporal (Últimos 30 dias) -->
+    {% if justificativas_recentes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Tendência Temporal (Últimos 30 dias)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-center">Justificativas</th>
+                                    <th>Gráfico</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in justificativas_recentes %}
+                                <tr>
+                                    <td>{{ item.dia|date:"d/m/Y" }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ item.total }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" 
+                                                 role="progressbar" 
+                                                 style="width: {% widthratio item.total 10 100 %}%;">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Insights e Recomendações -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-info border-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Insights e Recomendações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% if stats_gerais.percentual_justificadas > 30 %}
+                        <li class="mb-2">
+                            <strong>Alto índice de justificativas:</strong> 
+                            {{ stats_gerais.percentual_justificadas }}% das tarefas foram justificadas. 
+                            Considere revisar os processos ou identificar problemas sistêmicos.
+                        </li>
+                        {% endif %}
+                        
+                        {% if stats_gerais.pendentes > 10 %}
+                        <li class="mb-2">
+                            <strong>Justificativas pendentes:</strong> 
+                            Há {{ stats_gerais.pendentes }} justificativas aguardando análise da Equipe Volante.
+                        </li>
+                        {% endif %}
+                        
+                        {% if tipos_distribuicao %}
+                        <li class="mb-2">
+                            <strong>Tipo mais comum:</strong> 
+                            "{{ tipos_distribuicao.0.tipo_justificativa__nome }}" com {{ tipos_distribuicao.0.total }} ocorrências.
+                            {% if tipos_distribuicao.0.total > 20 %}
+                            Considere ações preventivas para este tipo de problema.
+                            {% endif %}
+                        </li>
+                        {% endif %}
+                        
+                        <li class="mb-0">
+                            <strong>Gestão proativa:</strong> 
+                            Utilize estes dados para identificar gargalos, treinar equipes e melhorar processos.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+@media print {
+    .btn, .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        page-break-inside: avoid;
+    }
+}
+</style>
+
+{% endblock %}

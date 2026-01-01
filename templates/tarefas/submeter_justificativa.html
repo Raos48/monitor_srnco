@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Justificar Tarefa - {{ tarefa.numero_protocolo_tarefa }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Cabecalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-file-alt"></i>
+                Submeter Justificativa
+            </h1>
+            <p class="text-muted mb-0">Protocolo: {{ tarefa.numero_protocolo_tarefa }}</p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=tarefa.numero_protocolo_tarefa %}"
+               class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Coluna do Formulario -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Formulario de Justificativa
+                    </h5>
+                </div>
+                <div class="card-body">
+
+                    <!-- Informacoes da Tarefa -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle"></i> Informacoes da Tarefa
+                        </h6>
+                        <p class="mb-1">
+                            <strong>Servico:</strong> {{ tarefa.nome_servico }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Status:</strong> {{ tarefa.status_tarefa }}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Criticidade:</strong>
+                            <span class="badge bg-danger">{{ tarefa.nivel_criticidade }}</span>
+                        </p>
+                    </div>
+
+                    <!-- Formulario -->
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Tipo de Justificativa -->
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_justificativa.id_for_label }}" class="form-label">
+                                {{ form.tipo_justificativa.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.tipo_justificativa }}
+                            {% if form.tipo_justificativa.help_text %}
+                            <small class="form-text text-muted">{{ form.tipo_justificativa.help_text }}</small>
+                            {% endif %}
+                            {% if form.tipo_justificativa.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.tipo_justificativa.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Descricao -->
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">
+                                {{ form.descricao.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.descricao }}
+                            <small class="form-text text-muted">
+                                {{ form.descricao.help_text }}
+                                <br>Minimo de 20 caracteres.
+                            </small>
+                            {% if form.descricao.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.descricao.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Botoes de Acao -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submeter Justificativa
+                            </button>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=tarefa.numero_protocolo_tarefa %}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Lateral - Orientacoes -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Orientacoes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <h6>O que e uma justificativa?</h6>
+                    <p class="small">
+                        Uma justificativa permite explicar situacoes especiais que impedem o
+                        cumprimento dos prazos normais de analise de tarefas.
+                    </p>
+
+                    <h6 class="mt-3">Quando justificar?</h6>
+                    <ul class="small">
+                        <li>Problemas sistemicos</li>
+                        <li>Aguardando adequacao de terceiros</li>
+                        <li>Casos complexos que demandam mais tempo</li>
+                        <li>Situacoes fora do controle do servidor</li>
+                    </ul>
+
+                    <h6 class="mt-3">Processo de analise</h6>
+                    <ol class="small">
+                        <li>Voce submete a justificativa</li>
+                        <li>A Equipe Volante analisa</li>
+                        <li>Se aprovada, a tarefa nao conta como critica</li>
+                        <li>Voce e notificado da decisao</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Tipos Disponiveis -->
+            {% if tipos_disponiveis %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-list"></i> Tipos de Justificativa
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for tipo in tipos_disponiveis %}
+                    <div class="mb-3 pb-2 border-bottom">
+                        <strong class="text-primary">{{ tipo.nome }}</strong>
+                        <p class="small mb-0 text-muted">{{ tipo.descricao }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

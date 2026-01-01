@@ -40,16 +40,22 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Third-party apps
+    'rest_framework',
+    'background_task',
+    'debug_toolbar',
+
     # Nossos apps
     'core',
     'usuarios',
     'tarefas',
-    'importar_csv', # <-- ADICIONE AQUI
+    'importar_csv',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -69,6 +75,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'tarefas.context_processors.group_permissions',
+                'tarefas.context_processors.data_processamento_context',
             ],
         },
     },
@@ -83,7 +91,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'monitor_srnco',          # O nome do banco que você criou
+        'NAME': 'monitor_srnco2',          # O nome do banco que você criou
         'USER': 'monitor_user',          # O usuário que você criou
         'PASSWORD': 'Raos@481050', # A senha que você definiu
         'HOST': '127.0.0.1',             # Ou 'localhost'
@@ -152,3 +160,32 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') == 'True'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+# ============================================
+# CONFIGURAÇÕES DA API REST
+# ============================================
+
+# Hash secreto para autenticação da API do robô
+# IMPORTANTE: Altere este valor em produção e mantenha secreto
+API_ROBO_SECRET_HASH = os.environ.get('API_ROBO_SECRET_HASH', 'hash_secreto_padrao_trocar_em_producao')
+
+# Configurações do Azure AD para envio de emails
+AZURE_AD_CLIENT_ID = os.environ.get('AZURE_AD_CLIENT_ID', '')
+AZURE_AD_CLIENT_SECRET = os.environ.get('AZURE_AD_CLIENT_SECRET', '')
+AZURE_AD_TENANT_ID = os.environ.get('AZURE_AD_TENANT_ID', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '')
+
+# ============================================
+# CONFIGURAÇÕES DO DJANGO DEBUG TOOLBAR
+# ============================================
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost',
+]
+
+# Configuração para garantir que o Debug Toolbar apareça
+def show_toolbar(request):
+    return DEBUG
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': show_toolbar,
+}

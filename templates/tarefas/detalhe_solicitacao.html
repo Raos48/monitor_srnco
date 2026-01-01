@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalhes da Solicitação - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    <i class="fas fa-hands-helping"></i> Detalhes da Solicitação
+                </h1>
+                <div>
+                    <a href="{% url 'tarefas:lista_solicitacoes_ajuda' %}" 
+                       class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Status da Solicitação -->
+            <div class="card border-0 shadow-sm mb-4 {% if solicitacao.status == 'PENDENTE' %}border-start border-danger border-4{% elif solicitacao.status == 'EM_ATENDIMENTO' %}border-start border-info border-4{% elif solicitacao.status == 'CONCLUIDA' %}border-start border-success border-4{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-2">
+                                Status: 
+                                {% if solicitacao.status == 'PENDENTE' %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-clock"></i> Pendente
+                                </span>
+                                {% elif solicitacao.status == 'EM_ATENDIMENTO' %}
+                                <span class="badge bg-info fs-6">
+                                    <i class="fas fa-user-clock"></i> Em Atendimento
+                                </span>
+                                {% elif solicitacao.status == 'CONCLUIDA' %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle"></i> Concluída
+                                </span>
+                                {% elif solicitacao.status == 'CANCELADA' %}
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="fas fa-ban"></i> Cancelada
+                                </span>
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-calendar"></i> Solicitada em {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        {% if solicitacao.status in 'PENDENTE,EM_ATENDIMENTO' %}
+                        <div>
+                            <a href="{% url 'tarefas:atender_solicitacao' solicitacao_id=solicitacao.id %}" 
+                               class="btn {% if solicitacao.status == 'PENDENTE' %}btn-danger{% else %}btn-info{% endif %}">
+                                <i class="fas fa-hands-helping"></i> Atender Agora
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações da Tarefa -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i> Informações da Tarefa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Protocolo:</strong><br>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=solicitacao.protocolo_original %}"
+                               class="text-decoration-none"
+                               target="_blank">
+                                <code class="fs-5">{{ solicitacao.protocolo_original }}</code>
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Servidor Solicitante:</strong><br>
+                            {{ solicitacao.servidor_solicitante.nome_completo }}<br>
+                            <small class="text-muted">SIAPE: {{ solicitacao.siape_servidor }}</small>
+                        </div>
+                        {% if solicitacao.tarefa %}
+                        <div class="col-md-6 mb-3">
+                            <strong>Serviço:</strong><br>
+                            <small>{{ solicitacao.tarefa.nome_servico }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Status da Tarefa:</strong><br>
+                            <small>{{ solicitacao.tarefa.status_tarefa }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Dias em Pendência:</strong><br>
+                            <span class="badge bg-danger">{{ solicitacao.tarefa.tempo_em_pendencia_em_dias }} dias</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Criticidade:</strong><br>
+                            {{ solicitacao.tarefa.badge_html_criticidade|safe }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descrição da Solicitação -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment-alt"></i> Descrição do Problema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            {{ solicitacao.descricao|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atendimento -->
+            {% if solicitacao.atendido_por %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header {% if solicitacao.status == 'CONCLUIDA' %}bg-success{% elif solicitacao.status == 'EM_ATENDIMENTO' %}bg-info{% else %}bg-secondary{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-shield"></i> Atendimento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Atendido por:</strong><br>
+                            {{ solicitacao.atendido_por.nome_completo }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Data de Início:</strong><br>
+                            {{ solicitacao.data_atendimento|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    
+                    {% if solicitacao.status == 'CONCLUIDA' %}
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Atendimento Concluído</strong><br>
+                        <small>Finalizado em {{ solicitacao.data_atualizacao|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    {% elif solicitacao.status == 'CANCELADA' %}
+                    <div class="alert alert-secondary mb-3">
+                        <i class="fas fa-ban"></i>
+                        <strong>Solicitação Cancelada</strong><br>
+                        <small>Cancelada em {{ solicitacao.data_atualizacao|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    {% elif solicitacao.status == 'EM_ATENDIMENTO' %}
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-user-clock"></i>
+                        <strong>Atendimento em Andamento</strong><br>
+                        <small>Iniciado em {{ solicitacao.data_atendimento|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if solicitacao.observacoes_atendimento %}
+                    <div>
+                        <strong>Observações do Atendimento:</strong>
+                        <div class="card bg-light mt-2">
+                            <div class="card-body">
+                                {{ solicitacao.observacoes_atendimento|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Timeline -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Histórico
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Solicitação Criada</h6>
+                                <small class="text-muted">
+                                    {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}
+                                    - {{ solicitacao.servidor_solicitante.nome_completo }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if solicitacao.atendido_por %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Atendimento Iniciado</h6>
+                                <small class="text-muted">
+                                    {{ solicitacao.data_atendimento|date:"d/m/Y H:i" }}
+                                    - {{ solicitacao.atendido_por.nome_completo }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if solicitacao.status == 'CONCLUIDA' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Atendimento Concluído</h6>
+                                <small class="text-muted">
+                                    {{ solicitacao.data_atualizacao|date:"d/m/Y H:i" }}
+                                    - {{ solicitacao.atendido_por.nome_completo }}
+                                </small>
+                            </div>
+                        </div>
+                        {% elif solicitacao.status == 'CANCELADA' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Solicitação Cancelada</h6>
+                                <small class="text-muted">
+                                    {{ solicitacao.data_atualizacao|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 30px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 20px;
+    bottom: -10px;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -32px;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+.timeline-content {
+    padding-top: 2px;
+}
+</style>
+
+{% endblock %}

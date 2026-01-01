@@ -8,45 +8,23 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarContent">
-            <!-- Lado Esquerdo - Ações -->
-            <ul class="navbar-nav me-auto">
-                {% if user.groups.all.0.name == 'Coordenador' %}
-                <li class="nav-item">
-                    <a href="{% url 'importar_csv:importar_csv' %}" class="btn btn-success btn-sm">
-                        <i class="fas fa-plus"></i>
-                        <span class="d-none d-md-inline">Nova Importação</span>
-                    </a>
-                </li>
+            <!-- Centro - Indicador de Data de Processamento -->
+            <div class="mx-auto">
+                {% if dados_atualizados %}
+                <span class="badge bg-{{ cor_status_processamento }} text-white px-3 py-2">
+                    <i class="fas fa-database me-2"></i>
+                    Os relatórios gerenciais do sistema foram atualizados, com carga de dados até {{ data_processamento|date:"d/m/Y" }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary text-white px-3 py-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Aguardando carga de dados
+                </span>
                 {% endif %}
-            </ul>
+            </div>
 
-            <!-- Centro - Busca -->
-            <form class="d-flex mx-auto" role="search" style="max-width: 400px;">
-                <div class="input-group">
-                    <input type="search" 
-                           class="form-control form-control-sm" 
-                           placeholder="Buscar tarefas..." 
-                           aria-label="Buscar">
-                    <button class="btn btn-primary btn-sm" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
-
-            <!-- Lado Direito - Status e Usuário -->
+            <!-- Lado Direito - Usuário -->
             <ul class="navbar-nav ms-auto align-items-center">
-                <!-- Última Atualização -->
-                <li class="nav-item me-3">
-                    <small class="text-muted">
-                        <i class="fas fa-sync-alt"></i>
-                        Atualizado: 
-                        {% if ultima_carga %}
-                            {{ ultima_carga|date:"d/m/Y H:i" }}
-                        {% else %}
-                            Nunca
-                        {% endif %}
-                    </small>
-                </li>
 
                 <!-- Dropdown do Usuário -->
                 <li class="nav-item dropdown">

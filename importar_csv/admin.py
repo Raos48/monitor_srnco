@@ -16,7 +16,11 @@ class RegistroImportacaoAdmin(admin.ModelAdmin):
         'nome_arquivo',
         'usuario',
         'data_importacao',
+        'status_badge',          # ← NOVO: Badge de status
+        'progresso_display',     # ← NOVO: Progresso visual
         'resumo_importacao',
+        'duracao_display',       # ← NOVO: Duração do processamento
+        'arquivo_status_display', # ← NOVO: Status do arquivo no disco
         'total_processado'
     )
     
@@ -25,6 +29,7 @@ class RegistroImportacaoAdmin(admin.ModelAdmin):
     
     # Filtros laterais
     list_filter = (
+        'status',               # ← NOVO: Filtrar por status
         'data_importacao',
         'usuario'
     )
@@ -47,30 +52,71 @@ class RegistroImportacaoAdmin(admin.ModelAdmin):
         'usuario',
         'data_importacao',
         'nome_arquivo',
+        'caminho_arquivo',                  # ← NOVO: Caminho completo
+        'status',
+        'total_linhas',
+        'linhas_processadas',
+        'progresso_percentual',
+        'data_inicio_processamento',
+        'data_fim_processamento',
+        'mensagem_erro',
         'registros_criados',
         'registros_atualizados',
         'usuarios_criados',
-        'total_processado'
+        'total_processado',
+        'duracao_display',
+        'arquivo_info_display'              # ← NOVO: Informações do arquivo
     )
     
     # Organização dos campos
     fieldsets = (
-        ('Informações da Importação', {
+        ('📁 Informações da Importação', {
             'fields': (
                 'nome_arquivo',
                 'usuario',
                 'data_importacao'
             )
         }),
-        ('Estatísticas', {
+        ('⚙️ Status e Progresso', {
+            'fields': (
+                'status',
+                'total_linhas',
+                'linhas_processadas',
+                'progresso_percentual'
+            )
+        }),
+        ('📊 Estatísticas', {
             'fields': (
                 'registros_criados',
                 'registros_atualizados',
                 'usuarios_criados',
                 'total_processado'
             )
+        }),
+        ('⏱️ Tempos', {
+            'fields': (
+                'data_inicio_processamento',
+                'data_fim_processamento',
+                'duracao_display'
+            )
+        }),
+        ('❌ Erros', {
+            'fields': (
+                'mensagem_erro',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('📂 Arquivo no Disco', {
+            'fields': (
+                'caminho_arquivo',
+                'arquivo_info_display'
+            ),
+            'description': 'Informações sobre o arquivo CSV no disco. Use a ação "Deletar arquivo do disco" para remover arquivos desnecessários.'
         })
     )
+
+    # Ações personalizadas
+    actions = ['deletar_arquivos_do_disco']
     
     def resumo_importacao(self, obj):
         """Exibe resumo visual da importação"""
@@ -94,7 +140,155 @@ class RegistroImportacaoAdmin(admin.ModelAdmin):
             total
         )
     total_processado.short_description = 'Total Processado'
-    
+
+    def status_badge(self, obj):
+        """← NOVO: Exibe badge colorido do status"""
+        cores = {
+            'PENDING': '#ffc107',
+            'PROCESSING': '#2196f3',
+            'COMPLETED': '#28a745',
+            'FAILED': '#dc3545',
+        }
+        cor = cores.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 3px; font-weight: bold;">{}</span>',
+            cor,
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    status_badge.admin_order_field = 'status'
+
+    def progresso_display(self, obj):
+        """← NOVO: Exibe barra de progresso visual"""
+        progresso = float(obj.progresso_percentual)
+
+        if obj.status == 'COMPLETED':
+            cor = '#28a745'
+        elif obj.status == 'FAILED':
+            cor = '#dc3545'
+        elif obj.status == 'PROCESSING':
+            cor = '#2196f3'
+        else:
+            cor = '#ffc107'
+
+        return format_html(
+            '<div style="width: 100px;">'
+            '<div style="background-color: #e9ecef; border-radius: 3px; overflow: hidden;">'
+            '<div style="background-color: {}; width: {}%; height: 20px; text-align: center; '
+            'color: white; font-size: 11px; line-height: 20px; font-weight: bold;">'
+            '{}%'
+            '</div>'
+            '</div>'
+            '</div>',
+            cor, progresso, int(progresso)
+        )
+    progresso_display.short_description = 'Progresso'
+    progresso_display.admin_order_field = 'progresso_percentual'
+
+    def duracao_display(self, obj):
+        """← NOVO: Exibe a duração do processamento formatada"""
+        duracao = obj.duracao_processamento()
+
+        if duracao is None:
+            if obj.status == 'PROCESSING':
+                return format_html('<span style="color: #2196f3;">⏳ Em andamento...</span>')
+            return format_html('<span style="color: gray;">-</span>')
+
+        # Converter para minutos e segundos
+        minutos = int(duracao // 60)
+        segundos = int(duracao % 60)
+
+        if minutos > 0:
+            texto = f"{minutos}m {segundos}s"
+        else:
+            texto = f"{segundos}s"
+
+        return format_html(
+            '<span style="color: #28a745; font-weight: bold;">⏱️ {}</span>',
+            texto
+        )
+    duracao_display.short_description = 'Duração'
+
+    def arquivo_status_display(self, obj):
+        """← NOVO: Mostra status do arquivo no disco"""
+        if obj.arquivo_existe():
+            tamanho = obj.tamanho_arquivo_mb()
+            tamanho_formatado = f"{tamanho:.2f}"
+            return format_html(
+                '<span style="color: #28a745; font-weight: bold;">✓ Disponível</span><br>'
+                '<span style="font-size: 11px; color: #6c757d;">{} MB</span>',
+                tamanho_formatado
+            )
+        return format_html('<span style="color: #dc3545;">✗ Não encontrado</span>')
+    arquivo_status_display.short_description = 'Arquivo'
+
+    def arquivo_info_display(self, obj):
+        """← NOVO: Mostra informações detalhadas do arquivo"""
+        if obj.arquivo_existe():
+            tamanho = obj.tamanho_arquivo_mb()
+            tamanho_formatado = f"{tamanho:.2f}"
+            return format_html(
+                '<div style="padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">'
+                '<h4 style="color: #155724; margin-top: 0;">✓ Arquivo Disponível no Disco</h4>'
+                '<table style="width: 100%; margin-top: 10px;">'
+                '<tr><td style="font-weight: bold; width: 120px;">Tamanho:</td><td>{} MB</td></tr>'
+                '<tr><td style="font-weight: bold;">Caminho:</td><td style="font-family: monospace; font-size: 11px;">{}</td></tr>'
+                '</table>'
+                '<p style="margin-top: 15px; color: #856404; background-color: #fff3cd; padding: 10px; border-radius: 3px;">'
+                '💡 <strong>Dica:</strong> Para liberar espaço em disco, selecione um ou mais registros na lista e '
+                'use a ação "Deletar arquivo do disco".'
+                '</p>'
+                '</div>',
+                tamanho_formatado, obj.caminho_arquivo
+            )
+        return format_html(
+            '<div style="padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">'
+            '<h4 style="color: #721c24; margin-top: 0;">✗ Arquivo Não Encontrado</h4>'
+            '<p style="margin-bottom: 0;">O arquivo foi removido ou movido do caminho original.</p>'
+            '</div>'
+        )
+    arquivo_info_display.short_description = 'Informações do Arquivo'
+
+    @admin.action(description='🗑️ Deletar arquivo do disco (mantém registro no banco)')
+    def deletar_arquivos_do_disco(self, request, queryset):
+        """Deleta os arquivos CSV do disco mantendo os registros no banco"""
+        deletados = 0
+        erros = []
+        nao_encontrados = 0
+
+        for registro in queryset:
+            if not registro.arquivo_existe():
+                nao_encontrados += 1
+                continue
+
+            sucesso, mensagem = registro.deletar_arquivo()
+            if sucesso:
+                deletados += 1
+            else:
+                erros.append(f"ID {registro.id}: {mensagem}")
+
+        # Mensagens de feedback
+        if deletados > 0:
+            self.message_user(
+                request,
+                f'✓ {deletados} arquivo(s) deletado(s) com sucesso do disco.',
+                level='success'
+            )
+
+        if nao_encontrados > 0:
+            self.message_user(
+                request,
+                f'ℹ️ {nao_encontrados} arquivo(s) já não existiam no disco.',
+                level='warning'
+            )
+
+        if erros:
+            self.message_user(
+                request,
+                f'✗ Erros ao deletar {len(erros)} arquivo(s): {"; ".join(erros)}',
+                level='error'
+            )
+
     def has_add_permission(self, request):
         """Remove o botão de adicionar (importações são feitas via upload)"""
         return False

@@ -6,9 +6,6 @@
 {% block content %}
 <div class="container-fluid">
 
-    <!-- ============================================
-         CABEÇALHO COM PROTOCOLO CLICÁVEL
-         ============================================ -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-1">
@@ -31,9 +28,7 @@
         </div>
     </div>
 
-    <!-- ============================================
-         CARD PRINCIPAL DE CRITICIDADE (IGUAL À IMAGEM)
-         ============================================ -->
+    <!-- CARD DE CRITICIDADE -->
     <div class="row">
         <div class="col-12 mb-4">
             <div class="card" style="border-left: 5px solid {{ criticidade.cor }}; background-color: {{ criticidade.cor }}15;">
@@ -44,7 +39,67 @@
                                 {{ criticidade.emoji }} CRITICIDADE: {{ criticidade.nivel|upper }}
                             </h2>
                             
-                            <!-- Tabela de Informações Principais -->
+                            <!-- SE FOR TAREFA CRÍTICA E USUÁRIO É O RESPONSÁVEL, MOSTRA BOTÕES -->
+                            {% if criticidade.nivel == 'CRÍTICA' and tarefa.siape_responsavel == request.user %}
+                            <div class="alert alert-warning mb-3">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Tarefa Crítica!</strong>
+                                <p class="mb-3">Esta tarefa está crítica. Você pode:</p>
+                                <div class="d-flex gap-2">
+                                    {% if tarefa.pode_submeter_justificativa %}
+                                    <a href="{% url 'tarefas:submeter_justificativa' protocolo=tarefa.numero_protocolo_tarefa %}" 
+                                       class="btn btn-primary">
+                                        <i class="fas fa-file-alt"></i> Justificar Situação
+                                    </a>
+                                    {% else %}
+                                    <button class="btn btn-secondary" disabled>
+                                        <i class="fas fa-check"></i> Justificativa já submetida
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if not tarefa.tem_solicitacao_ajuda %}
+                                    <a href="{% url 'tarefas:solicitar_ajuda' protocolo=tarefa.numero_protocolo_tarefa %}" 
+                                       class="btn btn-info">
+                                        <i class="fas fa-hands-helping"></i> Solicitar Ajuda da Equipe Volante
+                                    </a>
+                                    {% else %}
+                                    <button class="btn btn-secondary" disabled>
+                                        <i class="fas fa-check"></i> Ajuda já solicitada
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- SE TEM JUSTIFICATIVA ATIVA -->
+                            {% if tarefa.tem_justificativa_ativa %}
+                            <div class="alert alert-info mb-3">
+                                <strong><i class="fas fa-check-circle"></i> Justificativa Aprovada</strong>
+                                <p class="mb-0">Esta tarefa possui justificativa aprovada e não é contabilizada como crítica.</p>
+                                {% if tarefa.justificativa_ativa %}
+                                <small class="text-muted">
+                                    Tipo: {{ tarefa.justificativa_ativa.tipo_justificativa.nome }} | 
+                                    Aprovada em: {{ tarefa.justificativa_ativa.data_analise|date:"d/m/Y" }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- SE TEM SOLICITAÇÃO DE AJUDA -->
+                            {% if tarefa.tem_solicitacao_ajuda %}
+                            <div class="alert alert-info mb-3">
+                                <strong><i class="fas fa-hands-helping"></i> Solicitação de Ajuda Pendente</strong>
+                                <p class="mb-0">Existe uma solicitação de ajuda em andamento para esta tarefa.</p>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- SE SERVIÇO EXCLUÍDO -->
+                            {% if tarefa.servico_excluido_criticidade %}
+                            <div class="alert alert-secondary mb-3">
+                                <strong><i class="fas fa-info-circle"></i> Serviço Excluído da Análise</strong>
+                                <p class="mb-0">Este serviço foi configurado para não ser incluído na análise de criticidade.</p>
+                            </div>
+                            {% endif %}
+                            
                             <table class="table table-sm mb-3" style="background-color: white;">
                                 <tbody>
                                     <tr>
@@ -57,16 +112,7 @@
                                             </span>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td style="font-weight: 600; padding: 12px;">
-                                            Pontuação:
-                                        </td>
-                                        <td style="padding: 12px;">
-                                            <strong style="color: {{ criticidade.cor }}; font-size: 1.1rem;">
-                                                {{ criticidade.pontuacao }} pontos
-                                            </strong>
-                                        </td>
-                                    </tr>
+
                                     <tr>
                                         <td style="font-weight: 600; padding: 12px;">
                                             Dias Pendente:
@@ -86,7 +132,6 @@
                                 </tbody>
                             </table>
 
-                            <!-- Alerta -->
                             <div class="alert" style="background-color: white; border-left: 3px solid {{ criticidade.cor }}; margin-bottom: 1rem;">
                                 <div style="display: flex; align-items: start;">
                                     <i class="fas fa-exclamation-circle" style="color: {{ criticidade.cor }}; margin-right: 10px; margin-top: 2px;"></i>
@@ -97,18 +142,16 @@
                                 </div>
                             </div>
 
-                            <!-- Descrição Detalhada -->
                             <div class="alert" style="background-color: white; border-left: 3px solid {{ criticidade.cor }};">
                                 <div style="display: flex; align-items: start;">
                                     <i class="fas fa-info-circle" style="color: {{ criticidade.cor }}; margin-right: 10px; margin-top: 2px;"></i>
                                     <div>
-                                        <strong style="color: {{ criticidade.cor }};">📝 Descrição Detalhada:</strong><br>
+                                        <strong style="color: {{ criticidade.cor }};">🔍 Descrição Detalhada:</strong><br>
                                         <span style="color: #333;">{{ criticidade.descricao }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Último Cálculo -->
                             <div style="background-color: #e7f3ff; padding: 12px; border-radius: 5px; margin-top: 1rem;">
                                 <i class="fas fa-clock"></i>
                                 <strong>Último cálculo:</strong> 
@@ -121,11 +164,7 @@
         </div>
     </div>
 
-    <!-- ============================================
-         LAYOUT EM 2 COLUNAS
-         ============================================ -->
     <div class="row">
-        <!-- COLUNA ESQUERDA: DETALHES DO CÁLCULO -->
         <div class="col-lg-7">
             <div class="card-custom mb-4">
                 <div class="card-header-custom">
@@ -164,10 +203,8 @@
             </div>
         </div>
 
-        <!-- COLUNA DIREITA: INFORMAÇÕES DA TAREFA -->
         <div class="col-lg-5">
             
-            <!-- Card: Informações Básicas -->
             <div class="card-custom mb-4">
                 <div class="card-header-custom">
                     <h5 class="card-title-custom mb-0">
@@ -199,10 +236,24 @@
                         <small class="text-muted">GEX</small>
                         <strong>{{ info_basica.gex|truncatechars:35 }}</strong>
                     </li>
+                    
+                    <!-- INDICADORES ADICIONAIS -->
+                    {% if tarefa.indicador_subtarefas_pendentes > 0 %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Subtarefas Pendentes</small>
+                        <span class="badge bg-warning text-dark">📋 {{ tarefa.indicador_subtarefas_pendentes }}</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% if tarefa.indicador_tarefa_reaberta > 0 %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Tarefa Reaberta</small>
+                        <span class="badge bg-info">🔄 Sim</span>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
 
-            <!-- Card: Datas Relevantes -->
             <div class="card-custom mb-4">
                 <div class="card-header-custom">
                     <h5 class="card-title-custom mb-0">
@@ -233,7 +284,6 @@
                 </ul>
             </div>
 
-            <!-- Card: Tempos -->
             <div class="card-custom">
                 <div class="card-header-custom">
                     <h5 class="card-title-custom mb-0">
@@ -259,25 +309,18 @@
         </div>
     </div>
 
-    <!-- ============================================
-         LEGENDA
-         ============================================ -->
     <div class="mt-4">
         <small class="text-muted">
             <strong>Legenda de Criticidade:</strong>
-            <span class="badge bg-danger ms-2">🔴 CRÍTICA - Ação imediata necessária</span>
-            <span class="badge bg-warning text-dark ms-2">🟠 ALTA - Prazo excedido</span>
-            <span class="badge" style="background-color: #ffc107; color: black;" class="ms-2">🟡 MÉDIA - Próximo do vencimento</span>
-            <span class="badge bg-success ms-2">🟢 BAIXA - Em observação</span>
-            <span class="badge bg-secondary ms-2">⚪ NORMAL - Dentro do prazo</span>
+            <span class="badge bg-danger ms-2">⛔ CRÍTICA - Ação imediata necessária (prazo estourado)</span>
+            <span class="badge bg-success ms-2">✅ REGULAR - Dentro do prazo</span>
+            <span class="badge bg-info ms-2">📋 JUSTIFICADA - Justificativa aprovada</span>
+            <span class="badge bg-secondary ms-2">⊘ EXCLUÍDA - Serviço excluído da análise</span>
         </small>
     </div>
 
 </div>
 
-<!-- ============================================
-     ESTILOS CUSTOMIZADOS
-     ============================================ -->
 <style>
 .protocolo-link {
     color: #0e2238;

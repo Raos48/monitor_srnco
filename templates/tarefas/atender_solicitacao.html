@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Atender Solicitação - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    <i class="fas fa-hands-helping"></i> Atender Solicitação
+                </h1>
+                <a href="{% url 'tarefas:lista_solicitacoes_ajuda' %}" 
+                   class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Informações da Solicitação -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Informações da Solicitação
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Protocolo da Tarefa:</strong><br>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=solicitacao.protocolo_original %}"
+                               class="text-decoration-none"
+                               target="_blank">
+                                <code class="fs-5">{{ solicitacao.protocolo_original }}</code>
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Data da Solicitação:</strong><br>
+                            {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Servidor Solicitante:</strong><br>
+                            {{ solicitacao.servidor_solicitante.nome_completo }}<br>
+                            <small class="text-muted">SIAPE: {{ solicitacao.servidor_solicitante.siape }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Status Atual:</strong><br>
+                            {% if solicitacao.status == 'PENDENTE' %}
+                            <span class="badge bg-danger fs-6">
+                                <i class="fas fa-clock"></i> Pendente
+                            </span>
+                            {% elif solicitacao.status == 'EM_ATENDIMENTO' %}
+                            <span class="badge bg-info fs-6">
+                                <i class="fas fa-user-clock"></i> Em Atendimento
+                            </span>
+                            {% elif solicitacao.status == 'CONCLUIDA' %}
+                            <span class="badge bg-success fs-6">
+                                <i class="fas fa-check"></i> Concluída
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <strong>Descrição do Problema:</strong>
+                        <div class="card bg-light mt-2 mb-0">
+                            <div class="card-body">
+                                {{ solicitacao.descricao|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações da Tarefa -->
+            {% if solicitacao.tarefa %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i> Contexto da Tarefa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <strong>Serviço:</strong><br>
+                            <small>{{ solicitacao.tarefa.nome_servico }}</small>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Status:</strong><br>
+                            <small>{{ solicitacao.tarefa.status_tarefa }}</small>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Dias em Pendência:</strong><br>
+                            <span class="badge bg-danger">{{ solicitacao.tarefa.tempo_em_pendencia_em_dias }} dias</span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Nível de Criticidade:</strong><br>
+                            {{ solicitacao.tarefa.badge_html_criticidade|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Histórico de Atendimento -->
+            {% if solicitacao.atendido_por %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Histórico de Atendimento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <p class="mb-1">
+                            <strong>Atendido por:</strong> {{ solicitacao.atendido_por.nome_completo }}<br>
+                            <strong>Data de início:</strong> {{ solicitacao.data_atendimento|date:"d/m/Y H:i" }}
+                        </p>
+                        {% if solicitacao.observacoes_atendimento %}
+                        <hr>
+                        <p class="mb-0">
+                            <strong>Observações anteriores:</strong><br>
+                            {{ solicitacao.observacoes_atendimento|linebreaks }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulário de Atendimento -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Ação de Atendimento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Erros no formulário:</strong>
+                            <ul class="mb-0">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <strong>Ação:</strong> <span class="text-danger">*</span>
+                            </label>
+                            <div class="card bg-light p-3">
+                                {% for radio in form.acao %}
+                                <div class="form-check mb-2">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.observacao.id_for_label }}" class="form-label">
+                                <strong>Observações:</strong>
+                            </label>
+                            {{ form.observacao }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> 
+                                Opcional ao iniciar atendimento, mas <strong>obrigatório ao concluir ou cancelar</strong>.
+                            </div>
+                        </div>
+                        
+                        <!-- Alertas de Impacto -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Ações disponíveis:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Iniciar Atendimento:</strong> Atribui a solicitação a você e marca como "Em Atendimento".</li>
+                                <li><strong>Concluir Atendimento:</strong> Finaliza a solicitação. Descreva as ações realizadas.</li>
+                                <li><strong>Cancelar Solicitação:</strong> Cancela a solicitação. Explique o motivo.</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-paper-plane"></i> Submeter Ação
+                            </button>
+                            <a href="{% url 'tarefas:lista_solicitacoes_ajuda' %}" 
+                               class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.form-check {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.form-check:hover {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #ffc107;
+}
+
+.form-check-input:checked ~ .form-check-label {
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}

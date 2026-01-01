@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Avaliar Justificativa - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    <i class="fas fa-gavel"></i> Avaliar Justificativa
+                </h1>
+                <a href="{% url 'tarefas:lista_justificativas_analise' %}" 
+                   class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Informações da Justificativa -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Informações da Justificativa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Protocolo da Tarefa:</strong><br>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=justificativa.protocolo_original %}"
+                               class="text-decoration-none"
+                               target="_blank">
+                                <code class="fs-5">{{ justificativa.protocolo_original }}</code>
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Data de Submissão:</strong><br>
+                            {{ justificativa.data_submissao|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Servidor Responsável:</strong><br>
+                            {{ justificativa.servidor.nome_completo }}<br>
+                            <small class="text-muted">SIAPE: {{ justificativa.servidor.siape }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Tipo de Justificativa:</strong><br>
+                            <span class="badge bg-secondary fs-6">
+                                {{ justificativa.tipo_justificativa.nome }}
+                            </span>
+                            {% if justificativa.tipo_justificativa.descricao %}
+                            <br>
+                            <small class="text-muted">{{ justificativa.tipo_justificativa.descricao }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <strong>Descrição da Justificativa:</strong>
+                        <div class="card bg-light mt-2 mb-0">
+                            <div class="card-body">
+                                {{ justificativa.descricao|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações da Tarefa -->
+            {% if justificativa.tarefa %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i> Contexto da Tarefa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <strong>Serviço:</strong><br>
+                            <small>{{ justificativa.tarefa.nome_servico }}</small>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Status:</strong><br>
+                            <small>{{ justificativa.tarefa.status_tarefa }}</small>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Dias em Pendência:</strong><br>
+                            <span class="badge bg-danger">{{ justificativa.tarefa.tempo_em_pendencia_em_dias }} dias</span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Nível de Criticidade Atual:</strong><br>
+                            {{ justificativa.tarefa.badge_html_criticidade|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulário de Avaliação -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Sua Avaliação
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Erros no formulário:</strong>
+                            <ul class="mb-0">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <strong>Decisão:</strong> <span class="text-danger">*</span>
+                            </label>
+                            <div class="card bg-light p-3">
+                                {% for radio in form.decisao %}
+                                <div class="form-check mb-2">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.observacao.id_for_label }}" class="form-label">
+                                <strong>Observações:</strong>
+                            </label>
+                            {{ form.observacao }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> 
+                                Opcional para aprovação, mas <strong>obrigatório para reprovação</strong>.
+                                Explique o motivo da sua decisão.
+                            </div>
+                        </div>
+                        
+                        <!-- Alertas de Impacto -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Importante:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Se APROVAR:</strong> A tarefa não será mais classificada como CRÍTICA e será removida dos indicadores de criticidade.</li>
+                                <li><strong>Se REPROVAR:</strong> A tarefa permanecerá como CRÍTICA e o servidor será notificado do motivo da reprovação.</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-paper-plane"></i> Submeter Avaliação
+                            </button>
+                            <a href="{% url 'tarefas:lista_justificativas_analise' %}" 
+                               class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.form-check {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.form-check:hover {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #ffc107;
+}
+
+.form-check-input:checked ~ .form-check-label {
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}

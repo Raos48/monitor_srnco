@@ -59,19 +59,19 @@ class Command(BaseCommand):
                 f'📋 Analisando {len(tarefas)} tarefas...\n'
             ))
 
-            # Contadores por severidade
+            # Contadores por nível
             contador = {
                 'CRÍTICA': 0,
-                'ALTA': 0,
-                'MÉDIA': 0,
-                'BAIXA': 0,
-                'NENHUMA': 0
+                'JUSTIFICADA': 0,
+                'EXCLUÍDA': 0,
+                'REGULAR': 0,
             }
 
             for i, tarefa in enumerate(tarefas, 1):
                 self.stdout.write(self.style.HTTP_INFO(f'\n[{i}] Protocolo: {tarefa.numero_protocolo_tarefa}'))
                 resultado = self.testar_tarefa(analisador, tarefa, exibir_detalhes=False)
-                contador[resultado['severidade']] += 1
+                nivel = resultado['nivel']
+                contador[nivel] = contador.get(nivel, 0) + 1
 
             # Exibir resumo
             self.stdout.write('')
@@ -80,27 +80,25 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('=' * 70))
             self.stdout.write(f'Total analisado: {len(tarefas)}')
             self.stdout.write('')
-            self.stdout.write('Por Severidade:')
-            self.stdout.write(f'  🔴 CRÍTICA: {contador["CRÍTICA"]}')
-            self.stdout.write(f'  🟠 ALTA: {contador["ALTA"]}')
-            self.stdout.write(f'  🟡 MÉDIA: {contador["MÉDIA"]}')
-            self.stdout.write(f'  🟢 BAIXA: {contador["BAIXA"]}')
-            self.stdout.write(f'  ⚪ NENHUMA: {contador["NENHUMA"]}')
+            self.stdout.write('Por Nível:')
+            self.stdout.write(f'  ⛔ CRÍTICA: {contador["CRÍTICA"]}')
+            self.stdout.write(f'  📋 JUSTIFICADA: {contador["JUSTIFICADA"]}')
+            self.stdout.write(f'  ⊘ EXCLUÍDA: {contador["EXCLUÍDA"]}')
+            self.stdout.write(f'  ✅ REGULAR: {contador["REGULAR"]}')
 
     def testar_tarefa(self, analisador, tarefa, exibir_detalhes=True):
         """Testa o analisador em uma tarefa específica"""
         resultado = analisador.analisar_tarefa(tarefa)
 
-        # Colorir por severidade
-        severidade_style = {
+        # Colorir por nível
+        nivel_style = {
             'CRÍTICA': self.style.ERROR,
-            'ALTA': self.style.WARNING,
-            'MÉDIA': self.style.HTTP_INFO,
-            'BAIXA': self.style.SUCCESS,
-            'NENHUMA': self.style.HTTP_NOT_MODIFIED
+            'JUSTIFICADA': self.style.HTTP_INFO,
+            'EXCLUÍDA': self.style.HTTP_NOT_MODIFIED,
+            'REGULAR': self.style.SUCCESS,
         }
 
-        style = severidade_style.get(resultado['severidade'], self.style.SUCCESS)
+        style = nivel_style.get(resultado['nivel'], self.style.SUCCESS)
 
         if exibir_detalhes:
             self.stdout.write(self.style.SUCCESS('✓ Análise realizada!'))
@@ -108,10 +106,10 @@ class Command(BaseCommand):
             self.stdout.write(f'  Serviço: {tarefa.nome_servico}')
         
         self.stdout.write(f'  Regra: {resultado["regra"]}')
-        self.stdout.write(style(f'  Severidade: {resultado["severidade"]}'))
+        self.stdout.write(style(f'  Nível: {resultado["nivel"]}'))
         self.stdout.write(f'  Alerta: {resultado["alerta"]}')
-        
+
         if exibir_detalhes:
-            self.stdout.write(f'  Detalhes: {resultado["detalhes"]}')
+            self.stdout.write(f'  Descrição: {resultado["descricao"]}')
 
         return resultado

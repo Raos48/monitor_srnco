@@ -24,13 +24,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0; /* Garante que não há margem padrão do body */
-            padding: 0; /* Garante que não há padding padrão do body */
+            margin: 0;
+            padding: 0;
         }
         .login-container {
             max-width: 420px;
             width: 100%;
             padding: 20px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .login-card {
             background: white;
@@ -48,6 +59,15 @@
             font-size: 48px;
             margin-bottom: 15px;
             color: var(--link-blue);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
         }
         .login-header h1 {
             font-size: 24px;
@@ -73,10 +93,12 @@
             border: 1px solid #e5e8ee;
             padding: 12px 15px;
             font-size: 14px;
+            transition: all 0.3s ease;
         }
         .form-control:focus {
             border-color: var(--link-blue);
             box-shadow: 0 0 0 3px rgba(0, 186, 255, 0.1);
+            transform: translateY(-2px);
         }
         .btn-login {
             width: 100%;
@@ -88,15 +110,55 @@
             font-weight: 600;
             font-size: 14px;
             transition: all 0.3s ease;
+            position: relative;
         }
-        .btn-login:hover {
+        .btn-login:hover:not(:disabled) {
             background-color: #0099cc;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 186, 255, 0.3);
         }
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .btn-login .spinner {
+            display: none;
+        }
+        .btn-login.loading .spinner {
+            display: inline-block;
+        }
+        .btn-login.loading .text {
+            display: none;
+        }
         .alert {
             font-size: 13px;
             border-radius: 6px;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+        .password-toggle:hover {
+            color: var(--link-blue);
+        }
+        .form-group-password {
+            position: relative;
         }
     </style>
 </head>
@@ -123,43 +185,91 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-                <form method="post" action="{% url 'login' %}">
+                <form method="post" action="{% url 'login' %}" id="loginForm">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="id_username" class="form-label">
                             <i class="bi bi-envelope"></i> E-mail
                         </label>
-                        <input 
-                            type="email" 
-                            class="form-control" 
-                            id="id_username" 
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="id_username"
                             name="username"
                             placeholder="seu.email@exemplo.com.br"
                             required
                             autofocus
-                            value="{{ form.username.value|default:'' }}" {# Mantém o valor se houver erro #}
+                            value="{{ form.username.value|default:'' }}"
                         >
                     </div>
                     <div class="mb-4">
                         <label for="id_password" class="form-label">
                             <i class="bi bi-lock"></i> Senha
                         </label>
-                        <input 
-                            type="password" 
-                            class="form-control" 
-                            id="id_password" 
-                            name="password"
-                            placeholder="••••••••"
-                            required
-                        >
+                        <div class="form-group-password">
+                            <input
+                                type="password"
+                                class="form-control"
+                                id="id_password"
+                                name="password"
+                                placeholder="••••••••"
+                                required
+                            >
+                            <i class="bi bi-eye password-toggle" id="togglePassword" title="Mostrar/Ocultar senha"></i>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-login">
-                        <i class="bi bi-box-arrow-in-right"></i> Entrar
+                    <button type="submit" class="btn btn-login" id="loginBtn">
+                        <span class="text">
+                            <i class="bi bi-box-arrow-in-right"></i> Entrar
+                        </span>
+                        <span class="spinner">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Entrando...
+                        </span>
                     </button>
                 </form>
             </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+        // Toggle para mostrar/ocultar senha
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('id_password');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                // Alterna o ícone
+                this.classList.toggle('bi-eye');
+                this.classList.toggle('bi-eye-slash');
+            });
+        }
+
+        // Loading spinner no botão de login
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+
+        if (loginForm && loginBtn) {
+            loginForm.addEventListener('submit', function() {
+                loginBtn.classList.add('loading');
+                loginBtn.disabled = true;
+            });
+        }
+
+        // Auto-dismiss de alertas após 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert:not(.alert-danger)');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 </html>

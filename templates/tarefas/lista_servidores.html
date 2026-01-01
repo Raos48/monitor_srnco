@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-1"><i class="fas fa-users"></i> Lista de Servidores</h1>
-            <p class="text-muted mb-0">{{ total_servidores }} servidores | {{ total_criticas }} críticas | {{ total_altas }} altas</p>
+            <p class="text-muted mb-0">{{ total_servidores }} servidores | {{ total_criticas }} críticas</p>
         </div>
         <div>
             <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
@@ -17,7 +17,6 @@
         </div>
     </div>
 
-    <!-- Filtros -->
     <div class="card-custom mb-4">
         <div class="card-header-custom"><h3 class="card-title-custom"><i class="fas fa-filter"></i> Filtros</h3></div>
         <div class="card-body-custom">
@@ -47,11 +46,20 @@
                         <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i></button>
                     </div>
                 </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="tem_revisao_oficio" value="1" id="filtroRevisaoOficio" {% if filtros_ativos.tem_revisao_oficio == '1' %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="form-check-label text-danger fw-bold" for="filtroRevisaoOficio">
+                                <i class="fas fa-exclamation-triangle"></i> Somente servidores com Revisão de Ofício
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
-
-    <!-- Tabela -->
+    
     <div class="card-custom">
         <div class="card-body-custom" style="padding: 0;">
             <div class="table-responsive">
@@ -60,32 +68,29 @@
                         <tr>
                             <th style="width: 8%;">#</th>
                             <th style="width: 10%;">SIAPE</th>
-                            <th style="width: 25%;">Nome</th>
+                            <th style="width: 27%;">Nome</th>
                             <th style="width: 15%;">GEX</th>
-                            <th style="width: 7%;" class="text-center">Total</th>
-                            <th style="width: 7%;" class="text-center">🔴</th>
-                            <th style="width: 7%;" class="text-center">🟠</th>
-                            <th style="width: 7%;" class="text-center">🟡</th>
-                            <th style="width: 7%;" class="text-center">% Crít.</th>
-                            <th style="width: 7%;" class="text-center">Ações</th>
+                            <th style="width: 8%;" class="text-center">Total</th>
+                            <th style="width: 8%;" class="text-center">⛔ Críticas</th>
+                            <th style="width: 8%;" class="text-center">✅ Regulares</th>
+                            <th style="width: 8%;" class="text-center">% Crít.</th>
+                            <th style="width: 8%;" class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in servidores %}
                         <tr>
                             <td><strong>{{ forloop.counter }}</strong></td>
-                            <td><code style="font-size: 0.75rem;">{{ item.servidor.siape }}</code></td>
-                            <td>{{ item.servidor.nome_completo|truncatechars:35 }}</td>
-                            <td><small>{{ item.servidor.gex|default:"N/A" }}</small></td>
+                            <td><code style="font-size: 0.75rem;">{{ item.siape }}</code></td>
+                            <td>{{ item.nome_completo|truncatechars:35 }}</td>
+                            <td><small>{{ item.gex|default:"N/A" }}</small></td>
+                            
                             <td class="text-center"><span class="badge bg-primary">{{ item.total }}</span></td>
                             <td class="text-center">
                                 {% if item.criticas > 0 %}<span class="badge bg-danger">{{ item.criticas }}</span>{% else %}-{% endif %}
                             </td>
                             <td class="text-center">
-                                {% if item.altas > 0 %}<span class="badge bg-warning text-dark">{{ item.altas }}</span>{% else %}-{% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if item.medias > 0 %}<span class="badge bg-info text-dark">{{ item.medias }}</span>{% else %}-{% endif %}
+                                {% if item.regulares > 0 %}<span class="badge bg-success">{{ item.regulares }}</span>{% else %}-{% endif %}
                             </td>
                             <td class="text-center">
                                 {% widthratio item.criticas item.total 100 as perc %}
@@ -94,20 +99,19 @@
                                 {% else %}<span class="badge bg-secondary">{{ perc }}%</span>{% endif %}
                             </td>
                             <td class="text-center">
-                                <a href="{% url 'tarefas:detalhe_servidor' item.servidor.siape %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'tarefas:detalhe_servidor' item.siape %}" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="10" class="text-center text-muted py-4">Nenhum servidor encontrado.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">Nenhum servidor encontrado.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Paginação -->
         {% if servidores.has_other_pages %}
         <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
             <nav>

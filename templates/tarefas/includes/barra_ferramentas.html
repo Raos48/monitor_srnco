@@ -1,0 +1,609 @@
+{% load static %}
+
+<!-- Barra de Ferramentas de Ações Automatizadas -->
+<div class="card border-primary mb-4" id="barra-ferramentas-acoes">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-tools"></i> Ações Automatizadas
+            {% if servidor_filtrado %}
+            - {{ servidor_filtrado.nome_completo }} ({{ servidor_filtrado.siape }})
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <!-- Alertas de Status -->
+        <div id="alertas-status" class="mb-3"></div>
+
+        <!-- Botões de Ação -->
+        <div class="btn-group" role="group" aria-label="Ações do Servidor">
+
+            <!-- Enviar Email -->
+            {% if user.perfil == 'COORDENADOR' %}
+            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalEnviarEmail">
+                <i class="fas fa-envelope"></i> Enviar Email
+            </button>
+            {% endif %}
+
+            <!-- Notificações PGB (apenas para fila PGB) -->
+            {% if codigo_fila == 'PGB' and user.perfil == 'COORDENADOR' %}
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalPrimeiraNotificacao">
+                <i class="fas fa-bell"></i> 1ª Notificação
+            </button>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalSegundaNotificacao">
+                <i class="fas fa-bell"></i> 2ª Notificação
+            </button>
+            {% endif %}
+
+            <!-- Bloqueio/Desbloqueio -->
+            {% if user.perfil == 'COORDENADOR' %}
+            <button type="button" class="btn btn-secondary" id="btn-bloqueio" data-bs-toggle="modal" data-bs-target="#modalBloqueio">
+                <i class="fas fa-lock"></i> <span id="texto-bloqueio">Bloquear Caixa</span>
+            </button>
+            {% endif %}
+
+            <!-- Gerar Arquivo em Lote -->
+            {% if user.perfil == 'COORDENADOR' %}
+            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalArquivoLote">
+                <i class="fas fa-file-download"></i> Arquivo em Lote
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="text-muted small mt-2">
+            <i class="fas fa-info-circle"></i>
+            As ações serão processadas por um robô externo. Você receberá feedback quando concluídas.
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MODALS DE CONFIRMAÇÃO -->
+<!-- ============================================ -->
+
+<!-- Modal: Enviar Email -->
+<div class="modal fade" id="modalEnviarEmail" tabindex="-1" aria-labelledby="modalEnviarEmailLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalEnviarEmailLabel">
+                    <i class="fas fa-envelope"></i> Enviar Email
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'tarefas:enviar_email_servidor' servidor_filtrado.siape %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Enviar email para: <strong>{{ servidor_filtrado.email }}</strong></p>
+
+                    <div class="mb-3">
+                        <label for="template_nome" class="form-label">Selecione o Template:</label>
+                        <select class="form-select" name="template_nome" id="template_nome" required>
+                            <option value="">-- Escolha um template --</option>
+                            {% comment %}
+                            <!-- Templates serão carregados dinamicamente ou via context -->
+                            <option value="notificacao_tarefas">Notificação de Tarefas Pendentes</option>
+                            <option value="lembrete_prazo">Lembrete de Prazo</option>
+                            {% endcomment %}
+                        </select>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atenção:</strong> O email será enviado imediatamente e incluirá a lista de tarefas do servidor.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-paper-plane"></i> Enviar Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Primeira Notificação PGB -->
+<div class="modal fade" id="modalPrimeiraNotificacao" tabindex="-1" aria-labelledby="modalPrimeiraNotificacaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="modalPrimeiraNotificacaoLabel">
+                    <i class="fas fa-bell"></i> Criar Primeira Notificação PGB
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'tarefas:solicitar_notificacao_pgb' servidor_filtrado.siape %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo_notificacao" value="PRIMEIRA_NOTIFICACAO">
+                <div class="modal-body">
+                    <p>Criar tarefa PGB de <strong>Primeira Notificação</strong> para:</p>
+                    <p class="lead">{{ servidor_filtrado.nome_completo }} ({{ servidor_filtrado.siape }})</p>
+
+                    <div class="mb-3">
+                        <label for="observacoes_primeira" class="form-label">Observações (opcional):</label>
+                        <textarea class="form-control" name="observacoes" id="observacoes_primeira" rows="3"></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Esta ação será processada pelo robô externo. O número do protocolo será registrado quando concluída.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-check"></i> Confirmar Solicitação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Segunda Notificação PGB -->
+<div class="modal fade" id="modalSegundaNotificacao" tabindex="-1" aria-labelledby="modalSegundaNotificacaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalSegundaNotificacaoLabel">
+                    <i class="fas fa-bell"></i> Criar Segunda Notificação PGB
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" action="{% url 'tarefas:solicitar_notificacao_pgb' servidor_filtrado.siape %}">
+                {% csrf_token %}
+                <input type="hidden" name="tipo_notificacao" value="SEGUNDA_NOTIFICACAO">
+                <div class="modal-body">
+                    <p>Criar tarefa PGB de <strong>Segunda Notificação</strong> para:</p>
+                    <p class="lead">{{ servidor_filtrado.nome_completo }} ({{ servidor_filtrado.siape }})</p>
+
+                    <div class="mb-3">
+                        <label for="observacoes_segunda" class="form-label">Observações (opcional):</label>
+                        <textarea class="form-control" name="observacoes" id="observacoes_segunda" rows="3"></textarea>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atenção:</strong> Segunda notificação indica reincidência. Certifique-se de que a primeira notificação já foi enviada.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-check"></i> Confirmar Solicitação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bloqueio/Desbloqueio -->
+<div class="modal fade" id="modalBloqueio" tabindex="-1" aria-labelledby="modalBloqueioLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="modalBloqueioLabel">
+                    <i class="fas fa-lock"></i> <span id="titulo-bloqueio">Bloquear Caixa</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form method="POST" id="form-bloqueio" action="{% url 'tarefas:solicitar_bloqueio_servidor' servidor_filtrado.siape %}">
+                {% csrf_token %}
+                <input type="hidden" name="codigo_fila" value="{{ codigo_fila }}">
+                <div class="modal-body">
+                    <p id="texto-confirmacao-bloqueio">
+                        Bloquear caixa de <strong>{{ servidor_filtrado.nome_completo }} ({{ servidor_filtrado.siape }})</strong> para a fila <strong>{{ codigo_fila }}</strong>?
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="observacoes_bloqueio" class="form-label">Motivo/Observações:</label>
+                        <textarea class="form-control" name="observacoes" id="observacoes_bloqueio" rows="3" required></textarea>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atenção:</strong> O servidor não poderá puxar novas tarefas desta fila até que seja desbloqueado.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger" id="btn-confirmar-bloqueio">
+                        <i class="fas fa-check"></i> Confirmar Bloqueio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Gerar Arquivo em Lote -->
+<div class="modal fade" id="modalArquivoLote" tabindex="-1" aria-labelledby="modalArquivoLoteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalArquivoLoteLabel">
+                    <i class="fas fa-file-download"></i> Gerar Arquivo para Ação em Lote
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="formArquivoLote" method="POST" action="{% url 'tarefas:gerar_arquivo_acao_lote' servidor_filtrado.siape codigo_fila %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Tipo de Ação -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Tipo de Ação:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_acao" id="tipoRemover" value="REMOVER" checked>
+                            <label class="form-check-label" for="tipoRemover">
+                                <strong>Remover Responsável em Lote</strong> (Tipo 14)
+                                <small class="text-muted d-block">Remove o servidor como responsável das tarefas selecionadas</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="tipo_acao" id="tipoTransferir" value="TRANSFERIR">
+                            <label class="form-check-label" for="tipoTransferir">
+                                <strong>Transferir Tarefa em Lote</strong> (Tipo 12)
+                                <small class="text-muted d-block">Transfere as tarefas selecionadas para outra unidade</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Seleção de Tarefas -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Seleção de Tarefas:</label>
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle"></i>
+                            Total de tarefas do servidor nesta fila: <strong id="totalTarefas">Carregando...</strong>
+                        </div>
+
+                        <!-- Todas as tarefas -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input criterio-selecao" type="radio" name="criterio_selecao" id="criterioTodas" value="TODAS" checked>
+                            <label class="form-check-label" for="criterioTodas">
+                                <strong>Todas as tarefas</strong>
+                                <small class="text-muted d-block">Incluir todas as tarefas do servidor nesta fila</small>
+                            </label>
+                        </div>
+
+                        <!-- Por serviço -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input criterio-selecao" type="radio" name="criterio_selecao" id="criterioServico" value="SERVICO">
+                            <label class="form-check-label" for="criterioServico">
+                                <strong>Por serviço:</strong>
+                            </label>
+                            <select class="form-select form-select-sm mt-1" name="servico_nome" id="selectServico" disabled>
+                                <option value="">Carregando serviços...</option>
+                            </select>
+                        </div>
+
+                        <!-- Por quantidade -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input criterio-selecao" type="radio" name="criterio_selecao" id="criterioQuantidade" value="QUANTIDADE">
+                            <label class="form-check-label" for="criterioQuantidade">
+                                <strong>Por quantidade:</strong>
+                            </label>
+                            <input type="number" class="form-control form-control-sm mt-1" name="quantidade" id="inputQuantidade"
+                                   min="1" placeholder="Digite a quantidade de tarefas" disabled>
+                            <small class="text-muted">As tarefas com mais dias pendentes serão selecionadas primeiro</small>
+                        </div>
+
+                        <!-- Protocolos específicos -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input criterio-selecao" type="radio" name="criterio_selecao" id="criterioManual" value="MANUAL">
+                            <label class="form-check-label" for="criterioManual">
+                                <strong>Protocolos específicos:</strong>
+                            </label>
+                            <textarea class="form-control form-control-sm mt-1" name="protocolos_manuais" id="textareaProtocolos"
+                                      rows="3" placeholder="Digite os protocolos separados por vírgula, espaço ou quebra de linha" disabled></textarea>
+                            <small class="text-muted">Exemplo: 1001437117, 1001437118, 1001437119</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Campos específicos para Transferência -->
+                    <div id="camposTransferencia" style="display: none;">
+                        <div class="mb-3">
+                            <label for="inputUoDestino" class="form-label fw-bold">
+                                UO de Destino: <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="uo_destino" id="inputUoDestino"
+                                   placeholder="Ex: 23150521" maxlength="20">
+                            <small class="text-muted">Código da unidade organizacional de destino</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="textareaDespacho" class="form-label fw-bold">
+                                Despacho: <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" name="despacho" id="textareaDespacho"
+                                      rows="4" maxlength="400" placeholder="Digite o despacho da transferência (mínimo 30 caracteres)"></textarea>
+                            <small class="text-muted">
+                                <span id="contadorCaracteres">0</span>/400 caracteres (mínimo: 30)
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Aviso de processamento -->
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atenção:</strong> O arquivo CSV será gerado imediatamente para download.
+                        Após a importação no sistema INSS, as ações serão processadas em lote.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-dark" id="btnGerarArquivo">
+                        <i class="fas fa-download"></i> Gerar Arquivo CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- JAVASCRIPT PARA CONTROLE DINÂMICO -->
+<!-- ============================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const siape = '{{ servidor_filtrado.siape }}';
+    const codigoFila = '{{ codigo_fila }}';
+
+    // Verificar status do servidor
+    fetch(`/tarefas/servidor/${siape}/status/?codigo_fila=${codigoFila}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Atualizar botão de bloqueio
+                const btnBloqueio = document.getElementById('btn-bloqueio');
+                const textoBloqueio = document.getElementById('texto-bloqueio');
+                const formBloqueio = document.getElementById('form-bloqueio');
+                const tituloBloqueio = document.getElementById('titulo-bloqueio');
+                const textoConfirmacao = document.getElementById('texto-confirmacao-bloqueio');
+                const btnConfirmar = document.getElementById('btn-confirmar-bloqueio');
+
+                if (data.bloqueado) {
+                    // Servidor está bloqueado
+                    btnBloqueio.classList.remove('btn-secondary');
+                    btnBloqueio.classList.add('btn-success');
+                    textoBloqueio.innerHTML = '<i class="fas fa-unlock"></i> Desbloquear Caixa';
+                    tituloBloqueio.textContent = 'Desbloquear Caixa';
+                    textoConfirmacao.innerHTML = `Desbloquear caixa de <strong>{{ servidor_filtrado.nome_completo }}</strong> para a fila <strong>${codigoFila}</strong>?`;
+                    btnConfirmar.innerHTML = '<i class="fas fa-check"></i> Confirmar Desbloqueio';
+                    btnConfirmar.classList.remove('btn-danger');
+                    btnConfirmar.classList.add('btn-success');
+                    formBloqueio.action = `/tarefas/servidor/${siape}/desbloqueio/solicitar/`;
+                }
+
+                // Mostrar alertas
+                const divAlertas = document.getElementById('alertas-status');
+                let alertasHTML = '';
+
+                if (data.bloqueado) {
+                    alertasHTML += `
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="fas fa-lock"></i>
+                            <strong>Caixa Bloqueada:</strong> Este servidor está bloqueado para esta fila e não pode puxar novas tarefas.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+
+                if (data.tem_solicitacao_pendente) {
+                    alertasHTML += `
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-clock"></i>
+                            <strong>Solicitação Pendente:</strong> Existe uma solicitação de bloqueio/desbloqueio aguardando processamento pelo robô.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+
+                if (data.tem_notificacao) {
+                    alertasHTML += `
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="fas fa-bell"></i>
+                            <strong>Notificação PGB Ativa:</strong> Este servidor possui tarefas de notificação PGB criadas.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+
+                if (data.tem_revisao_oficio) {
+                    alertasHTML += `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Revisão de Ofício:</strong> Este servidor possui ${data.total_revisao_oficio} tarefa(s) de Revisão de Ofício sob sua responsabilidade.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+
+                divAlertas.innerHTML = alertasHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao verificar status:', error);
+        });
+
+    // ============================================
+    // CONTROLE DO MODAL DE ARQUIVO EM LOTE
+    // ============================================
+
+    // Buscar informações quando o modal for aberto
+    const modalArquivoLote = document.getElementById('modalArquivoLote');
+    if (modalArquivoLote) {
+        modalArquivoLote.addEventListener('show.bs.modal', function() {
+            // Buscar total de tarefas e serviços
+            fetch(`/tarefas/servidor/${siape}/fila/${codigoFila}/servicos/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Atualizar total de tarefas
+                        const totalTarefas = data.servicos.length > 0 ?
+                            data.servicos.reduce((sum, s) => sum, 0) : 0;
+
+                        // Buscar total real de tarefas
+                        fetch(`/tarefas/servidor/${siape}/status/?codigo_fila=${codigoFila}`)
+                            .then(r => r.json())
+                            .then(statusData => {
+                                if (statusData.total_tarefas !== undefined) {
+                                    document.getElementById('totalTarefas').textContent = statusData.total_tarefas;
+                                    document.getElementById('inputQuantidade').max = statusData.total_tarefas;
+                                }
+                            });
+
+                        // Preencher dropdown de serviços
+                        const selectServico = document.getElementById('selectServico');
+                        selectServico.innerHTML = '<option value="">-- Selecione um serviço --</option>';
+                        data.servicos.forEach(servico => {
+                            const option = document.createElement('option');
+                            option.value = servico;
+                            option.textContent = servico;
+                            selectServico.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar serviços:', error);
+                    document.getElementById('totalTarefas').textContent = 'Erro ao carregar';
+                });
+        });
+    }
+
+    // Controlar exibição de campos baseado no tipo de ação
+    const tipoRemover = document.getElementById('tipoRemover');
+    const tipoTransferir = document.getElementById('tipoTransferir');
+    const camposTransferencia = document.getElementById('camposTransferencia');
+
+    if (tipoRemover && tipoTransferir && camposTransferencia) {
+        tipoRemover.addEventListener('change', function() {
+            if (this.checked) {
+                camposTransferencia.style.display = 'none';
+                document.getElementById('inputUoDestino').removeAttribute('required');
+                document.getElementById('textareaDespacho').removeAttribute('required');
+            }
+        });
+
+        tipoTransferir.addEventListener('change', function() {
+            if (this.checked) {
+                camposTransferencia.style.display = 'block';
+                document.getElementById('inputUoDestino').setAttribute('required', 'required');
+                document.getElementById('textareaDespacho').setAttribute('required', 'required');
+            }
+        });
+    }
+
+    // Controlar habilitação/desabilitação de campos baseado no critério de seleção
+    const criteriosSelecao = document.querySelectorAll('.criterio-selecao');
+    const selectServico = document.getElementById('selectServico');
+    const inputQuantidade = document.getElementById('inputQuantidade');
+    const textareaProtocolos = document.getElementById('textareaProtocolos');
+
+    criteriosSelecao.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Desabilitar todos primeiro
+            selectServico.disabled = true;
+            inputQuantidade.disabled = true;
+            textareaProtocolos.disabled = true;
+
+            // Habilitar o campo correspondente
+            if (this.value === 'SERVICO') {
+                selectServico.disabled = false;
+            } else if (this.value === 'QUANTIDADE') {
+                inputQuantidade.disabled = false;
+            } else if (this.value === 'MANUAL') {
+                textareaProtocolos.disabled = false;
+            }
+        });
+    });
+
+    // Contador de caracteres do despacho
+    const textareaDespacho = document.getElementById('textareaDespacho');
+    const contadorCaracteres = document.getElementById('contadorCaracteres');
+
+    if (textareaDespacho && contadorCaracteres) {
+        textareaDespacho.addEventListener('input', function() {
+            contadorCaracteres.textContent = this.value.length;
+
+            // Destacar em vermelho se menor que 30
+            if (this.value.length < 30 && this.value.length > 0) {
+                contadorCaracteres.classList.add('text-danger');
+                contadorCaracteres.classList.remove('text-success');
+            } else if (this.value.length >= 30) {
+                contadorCaracteres.classList.remove('text-danger');
+                contadorCaracteres.classList.add('text-success');
+            } else {
+                contadorCaracteres.classList.remove('text-danger', 'text-success');
+            }
+        });
+    }
+
+    // Validação do formulário antes de enviar
+    const formArquivoLote = document.getElementById('formArquivoLote');
+    if (formArquivoLote) {
+        formArquivoLote.addEventListener('submit', function(e) {
+            const tipoAcao = document.querySelector('input[name="tipo_acao"]:checked').value;
+            const criterioSelecao = document.querySelector('input[name="criterio_selecao"]:checked').value;
+
+            // Validar transferência
+            if (tipoAcao === 'TRANSFERIR') {
+                const uoDestino = document.getElementById('inputUoDestino').value.trim();
+                const despacho = document.getElementById('textareaDespacho').value.trim();
+
+                if (!uoDestino) {
+                    e.preventDefault();
+                    alert('Por favor, informe a UO de destino.');
+                    return false;
+                }
+
+                if (despacho.length < 30) {
+                    e.preventDefault();
+                    alert('O despacho deve ter no mínimo 30 caracteres.');
+                    return false;
+                }
+
+                if (despacho.length > 400) {
+                    e.preventDefault();
+                    alert('O despacho não pode ter mais de 400 caracteres.');
+                    return false;
+                }
+            }
+
+            // Validar critérios de seleção
+            if (criterioSelecao === 'SERVICO') {
+                const servico = document.getElementById('selectServico').value;
+                if (!servico) {
+                    e.preventDefault();
+                    alert('Por favor, selecione um serviço.');
+                    return false;
+                }
+            } else if (criterioSelecao === 'QUANTIDADE') {
+                const quantidade = document.getElementById('inputQuantidade').value;
+                if (!quantidade || quantidade <= 0) {
+                    e.preventDefault();
+                    alert('Por favor, informe uma quantidade válida.');
+                    return false;
+                }
+            } else if (criterioSelecao === 'MANUAL') {
+                const protocolos = document.getElementById('textareaProtocolos').value.trim();
+                if (!protocolos) {
+                    e.preventDefault();
+                    alert('Por favor, informe pelo menos um protocolo.');
+                    return false;
+                }
+            }
+
+            // Desabilitar botão para evitar duplo clique
+            const btnGerarArquivo = document.getElementById('btnGerarArquivo');
+            btnGerarArquivo.disabled = true;
+            btnGerarArquivo.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+        });
+    }
+});
+</script>

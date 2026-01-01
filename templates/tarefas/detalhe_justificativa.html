@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalhes da Justificativa - Monitor SRNCO{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    <i class="fas fa-file-alt"></i> Detalhes da Justificativa
+                </h1>
+                <div>
+                    <a href="{% url 'tarefas:lista_justificativas_analise' %}" 
+                       class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Status da Justificativa -->
+            <div class="card border-0 shadow-sm mb-4 {% if justificativa.status == 'PENDENTE' %}border-start border-warning border-4{% elif justificativa.status == 'APROVADA' %}border-start border-success border-4{% elif justificativa.status == 'REPROVADA' %}border-start border-danger border-4{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-2">
+                                Status: 
+                                {% if justificativa.status == 'PENDENTE' %}
+                                <span class="badge bg-warning text-dark fs-6">
+                                    <i class="fas fa-clock"></i> Pendente de Análise
+                                </span>
+                                {% elif justificativa.status == 'APROVADA' %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle"></i> Aprovada
+                                </span>
+                                {% elif justificativa.status == 'REPROVADA' %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-times-circle"></i> Reprovada
+                                </span>
+                                {% elif justificativa.status == 'ARQUIVADA' %}
+                                <span class="badge bg-secondary fs-6">
+                                    <i class="fas fa-archive"></i> Arquivada
+                                </span>
+                                {% endif %}
+                            </h5>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-calendar"></i> Submetida em {{ justificativa.data_submissao|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                        {% if justificativa.status == 'PENDENTE' %}
+                        <div>
+                            <a href="{% url 'tarefas:avaliar_justificativa' justificativa_id=justificativa.id %}" 
+                               class="btn btn-warning">
+                                <i class="fas fa-gavel"></i> Avaliar Agora
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações da Tarefa -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i> Informações da Tarefa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Protocolo:</strong><br>
+                            <a href="{% url 'tarefas:detalhe_tarefa' protocolo=justificativa.protocolo_original %}"
+                               class="text-decoration-none"
+                               target="_blank">
+                                <code class="fs-5">{{ justificativa.protocolo_original }}</code>
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Servidor Responsável:</strong><br>
+                            {{ justificativa.servidor.nome_completo }}<br>
+                            <small class="text-muted">SIAPE: {{ justificativa.siape_servidor }}</small>
+                        </div>
+                        {% if justificativa.tarefa %}
+                        <div class="col-md-6 mb-3">
+                            <strong>Serviço:</strong><br>
+                            <small>{{ justificativa.tarefa.nome_servico }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Status da Tarefa:</strong><br>
+                            <small>{{ justificativa.tarefa.status_tarefa }}</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Dias em Pendência:</strong><br>
+                            <span class="badge bg-danger">{{ justificativa.tarefa.tempo_em_pendencia_em_dias }} dias</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Criticidade Atual:</strong><br>
+                            {{ justificativa.tarefa.badge_html_criticidade|safe }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Justificativa -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt"></i> Justificativa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Tipo de Justificativa:</strong><br>
+                        <span class="badge bg-secondary fs-6">{{ justificativa.tipo_justificativa.nome }}</span>
+                        {% if justificativa.tipo_justificativa.descricao %}
+                        <br>
+                        <small class="text-muted mt-1 d-block">{{ justificativa.tipo_justificativa.descricao }}</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <strong>Descrição:</strong>
+                        <div class="card bg-light mt-2">
+                            <div class="card-body">
+                                {{ justificativa.descricao|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise da Equipe Volante -->
+            {% if justificativa.analisado_por %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header {% if justificativa.status == 'APROVADA' %}bg-success{% elif justificativa.status == 'REPROVADA' %}bg-danger{% else %}bg-info{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-shield"></i> Análise da Equipe Volante
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>Analisado por:</strong><br>
+                            {{ justificativa.analisado_por.nome_completo }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Data da Análise:</strong><br>
+                            {{ justificativa.data_analise|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Decisão:</strong><br>
+                        {% if justificativa.status == 'APROVADA' %}
+                        <span class="badge bg-success fs-6">
+                            <i class="fas fa-check-circle"></i> Justificativa Aprovada
+                        </span>
+                        <p class="text-success mt-2 mb-0">
+                            <i class="fas fa-info-circle"></i> A tarefa foi reclassificada e não é mais considerada CRÍTICA.
+                        </p>
+                        {% elif justificativa.status == 'REPROVADA' %}
+                        <span class="badge bg-danger fs-6">
+                            <i class="fas fa-times-circle"></i> Justificativa Reprovada
+                        </span>
+                        <p class="text-danger mt-2 mb-0">
+                            <i class="fas fa-info-circle"></i> A tarefa permanece como CRÍTICA.
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if justificativa.observacao_analise %}
+                    <div>
+                        <strong>Observações da Análise:</strong>
+                        <div class="card bg-light mt-2">
+                            <div class="card-body">
+                                {{ justificativa.observacao_analise|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Timeline -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Histórico
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Justificativa Submetida</h6>
+                                <small class="text-muted">
+                                    {{ justificativa.data_submissao|date:"d/m/Y H:i" }}
+                                    - {{ justificativa.servidor.nome_completo }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if justificativa.analisado_por %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker {% if justificativa.status == 'APROVADA' %}bg-success{% else %}bg-danger{% endif %}"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Justificativa {{ justificativa.get_status_display }}</h6>
+                                <small class="text-muted">
+                                    {{ justificativa.data_analise|date:"d/m/Y H:i" }}
+                                    - {{ justificativa.analisado_por.nome_completo }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 30px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 20px;
+    bottom: -10px;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -32px;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+.timeline-content {
+    padding-top: 2px;
+}
+</style>
+
+{% endblock %}

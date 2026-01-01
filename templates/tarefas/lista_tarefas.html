@@ -6,9 +6,6 @@
 {% block content %}
 <div class="container-fluid">
 
-    <!-- ============================================
-         CABEÇALHO
-         ============================================ -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-1">
@@ -16,7 +13,9 @@
                 Lista de Tarefas
             </h1>
             <p class="text-muted mb-0">
-                {{ kpis.total }} tarefas | {{ kpis.criticas }} críticas | {{ kpis.altas }} altas
+                {{ kpis.total }} tarefas | 
+                {{ kpis.criticas }} críticas | 
+                {{ kpis.justificadas }} justificadas
             </p>
         </div>
         <div>
@@ -26,9 +25,6 @@
         </div>
     </div>
 
-    <!-- ============================================
-         KPIs
-         ============================================ -->
     <div class="row g-3 mb-4">
         <div class="col-md-2">
             <div class="kpi-card">
@@ -39,38 +35,35 @@
         <div class="col-md-2">
             <div class="kpi-card" style="border-left: 4px solid #dc3545;">
                 <div class="kpi-value" style="color: #dc3545;">{{ kpis.criticas }}</div>
-                <div class="kpi-label">🔴 Críticas</div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="kpi-card" style="border-left: 4px solid #fd7e14;">
-                <div class="kpi-value" style="color: #fd7e14;">{{ kpis.altas }}</div>
-                <div class="kpi-label">🟠 Altas</div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
-                <div class="kpi-value" style="color: #f39c12;">{{ kpis.medias }}</div>
-                <div class="kpi-label">🟡 Médias</div>
+                <div class="kpi-label">⛔ Críticas</div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="kpi-card" style="border-left: 4px solid #28a745;">
-                <div class="kpi-value" style="color: #28a745;">{{ kpis.baixas }}</div>
-                <div class="kpi-label">🟢 Baixas</div>
+                <div class="kpi-value" style="color: #28a745;">{{ kpis.regulares }}</div>
+                <div class="kpi-label">✅ Regulares</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #17a2b8;">
+                <div class="kpi-value" style="color: #17a2b8;">{{ kpis.justificadas }}</div>
+                <div class="kpi-label">📋 Justificadas</div>
             </div>
         </div>
         <div class="col-md-2">
             <div class="kpi-card" style="border-left: 4px solid #6c757d;">
-                <div class="kpi-value">{{ kpis.normais }}</div>
-                <div class="kpi-label">⚪ Normais</div>
+                <div class="kpi-value" style="color: #6c757d;">{{ kpis.excluidas }}</div>
+                <div class="kpi-label">⊘ Excluídas</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="kpi-card" style="border-left: 4px solid #ffc107;">
+                <div class="kpi-value" style="color: #ffc107;">{{ kpis.com_ajuda }}</div>
+                <div class="kpi-label">🆘 Com Ajuda</div>
             </div>
         </div>
     </div>
 
-    <!-- ============================================
-         FILTROS
-         ============================================ -->
     <div class="card-custom mb-4">
         <div class="card-header-custom">
             <h3 class="card-title-custom">
@@ -80,7 +73,7 @@
         <div class="card-body-custom">
             <form method="GET" action="{% url 'tarefas:lista_tarefas' %}">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Protocolo:</label>
                         <input type="text" class="form-control form-control-sm" name="protocolo" 
                                value="{{ filtros_ativos.protocolo }}" placeholder="Número do protocolo">
@@ -117,19 +110,19 @@
                         <input type="text" class="form-control form-control-sm" name="servico" 
                                value="{{ filtros_ativos.servico }}" placeholder="Nome do serviço">
                     </div>
-                    <div class="col-md-1 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-search"></i>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                            <i class="fas fa-search"></i> Filtrar
                         </button>
+                        <a href="{% url 'tarefas:lista_tarefas' %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-times"></i>
+                        </a>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ============================================
-         TABELA COM ALERTAS E PROTOCOLOS CLICÁVEIS
-         ============================================ -->
     <div class="card-custom">
         <div class="card-body-custom" style="padding: 0;">
             <div class="table-responsive">
@@ -137,12 +130,13 @@
                     <thead>
                         <tr>
                             <th style="width: 8%;">Criticidade</th>
-                            <th style="width: 12%;">Protocolo</th>
+                            <th style="width: 10%;">Protocolo</th>
                             <th style="width: 15%;">Serviço</th>
                             <th style="width: 10%;">Status</th>
-                            <th style="width: 15%;">Servidor</th>
-                            <th style="width: 25%;">Alerta / Descrição</th>
-                            <th style="width: 8%;" class="text-center">Dias Pend.</th>
+                            <th style="width: 12%;">Servidor</th>
+                            <th style="width: 20%;">Alerta / Descrição</th>
+                            <th style="width: 8%;" class="text-center">Indicadores</th>
+                            <th style="width: 7%;" class="text-center">Dias Pend.</th>
                             <th style="width: 7%;" class="text-center">Distribuição</th>
                         </tr>
                     </thead>
@@ -150,14 +144,10 @@
                         {% for tarefa in tarefas %}
                         <tr style="border-left: 4px solid {{ tarefa.cor_criticidade_calculado }};">
                             
-                            <!-- Criticidade -->
                             <td>
-                                <span class="badge" style="background-color: {{ tarefa.cor_criticidade_calculado }}; color: white;">
-                                    {{ tarefa.emoji_criticidade }} {{ tarefa.nivel_criticidade_calculado }}
-                                </span>
+                                {{ tarefa.badge_html_criticidade|safe }}
                             </td>
                             
-                            <!-- ✅ PROTOCOLO CLICÁVEL (ABRE INSS EM NOVA ABA) -->
                             <td>
                                 <a href="https://atendimento.inss.gov.br/tarefas/detalhar_tarefa/{{ tarefa.numero_protocolo_tarefa }}" 
                                    target="_blank" 
@@ -168,13 +158,17 @@
                                 </a>
                             </td>
                             
-                            <!-- Serviço -->
-                            <td><small>{{ tarefa.nome_servico|truncatewords:4 }}</small></td>
+                            <td>
+                                <small>{{ tarefa.nome_servico|truncatewords:4 }}</small>
+                                {% if tarefa.servico_excluido_criticidade %}
+                                <span class="badge bg-secondary" title="Serviço excluído da criticidade">
+                                    ⊘
+                                </span>
+                                {% endif %}
+                            </td>
                             
-                            <!-- Status -->
                             <td><small>{{ tarefa.status_tarefa|truncatechars:20 }}</small></td>
                             
-                            <!-- Servidor -->
                             <td>
                                 <small>
                                     {% if tarefa.siape_responsavel %}
@@ -187,14 +181,12 @@
                                 </small>
                             </td>
                             
-                            <!-- ✅ ALERTA CLICÁVEL (REDIRECIONA PARA DETALHE) -->
                             <td>
                                 {% if tarefa.alerta_criticidade_calculado %}
                                     <a href="{% url 'tarefas:detalhe_tarefa' tarefa.numero_protocolo_tarefa %}" 
                                        class="alerta-link"
                                        title="Ver detalhes da criticidade">
                                         <small class="text-primary">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>
                                             {{ tarefa.alerta_criticidade_calculado|truncatewords:8 }}
                                         </small>
                                     </a>
@@ -203,19 +195,53 @@
                                 {% endif %}
                             </td>
                             
-                            <!-- Dias Pendência -->
                             <td class="text-center">
-                                <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                                <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                    {% if tarefa.tem_justificativa_ativa %}
+                                    <span class="badge bg-info" title="Justificativa aprovada">
+                                        📋
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if tarefa.tem_solicitacao_ajuda %}
+                                    <span class="badge bg-warning text-dark" title="Solicitação de ajuda pendente">
+                                        🆘
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if tarefa.indicador_subtarefas_pendentes > 0 %}
+                                    <span class="badge bg-warning text-dark" title="{{ tarefa.indicador_subtarefas_pendentes }} subtarefa(s) pendente(s)">
+                                        📋 {{ tarefa.indicador_subtarefas_pendentes }}
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if tarefa.indicador_tarefa_reaberta > 0 %}
+                                    <span class="badge bg-info" title="Tarefa foi reaberta">
+                                        🔄
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if not tarefa.tem_justificativa_ativa and not tarefa.tem_solicitacao_ajuda and tarefa.indicador_subtarefas_pendentes == 0 and tarefa.indicador_tarefa_reaberta == 0 %}
+                                    <small class="text-muted">-</small>
+                                    {% endif %}
+                                </div>
                             </td>
                             
-                            <!-- Distribuição -->
+                            <td class="text-center">
+                                {% if tarefa.nivel_criticidade_calculado == 'CRÍTICA' %}
+                                <span class="badge bg-danger">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ tarefa.tempo_em_pendencia_em_dias }}</span>
+                                {% endif %}
+                            </td>
+                            
                             <td class="text-center">
                                 <small>{{ tarefa.data_distribuicao_tarefa|date:"d/m/Y"|default:"-" }}</small>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 Nenhuma tarefa encontrada com os filtros aplicados.
                             </td>
                         </tr>
@@ -225,9 +251,6 @@
             </div>
         </div>
 
-        <!-- ============================================
-             PAGINAÇÃO
-             ============================================ -->
         {% if tarefas.has_other_pages %}
         <div class="card-body-custom" style="padding: 1rem; border-top: 1px solid #dee2e6;">
             <nav>
@@ -259,9 +282,6 @@
 
 </div>
 
-<!-- ============================================
-     ESTILOS CUSTOMIZADOS
-     ============================================ -->
 <style>
 .protocolo-link {
     color: #0e2238;

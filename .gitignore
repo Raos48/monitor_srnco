@@ -31,3 +31,7 @@ staticfiles/
 # Arquivos de mídia (uploads de usuários)
 # (Se você mudar o MEDIA_ROOT, adicione-o aqui)
 media/
+
+# Arquivos de documentação e texto
+*.txt
+*.md

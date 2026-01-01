@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Painel da Equipe Volante{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Cabecalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-user-shield"></i>
+                Painel da Equipe Volante
+            </h1>
+            <p class="text-muted mb-0">Dashboard de Justificativas e Solicitacoes</p>
+        </div>
+        <div>
+            <a href="{% url 'tarefas:dashboard_coordenador' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs Cards -->
+    <div class="row mb-4">
+        <!-- Justificativas Pendentes -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Justificativas Pendentes</h6>
+                            <h2 class="mb-0 text-warning">{{ stats.justificativas_pendentes }}</h2>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-file-alt fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solicitacoes Pendentes -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Solicitacoes Pendentes</h6>
+                            <h2 class="mb-0 text-danger">{{ stats.solicitacoes_pendentes }}</h2>
+                        </div>
+                        <div class="text-danger">
+                            <i class="fas fa-hands-helping fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Em Atendimento -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Em Atendimento</h6>
+                            <h2 class="mb-0 text-info">{{ stats.solicitacoes_em_atendimento }}</h2>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-user-clock fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aprovadas Hoje -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Aprovadas Hoje</h6>
+                            <h2 class="mb-0 text-success">{{ stats.justificativas_aprovadas_hoje }}</h2>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Coluna Esquerda - Justificativas Pendentes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt"></i> Justificativas Pendentes
+                    </h5>
+                    <a href="{% url 'tarefas:lista_justificativas_analise' %}" class="btn btn-sm btn-dark">
+                        Ver Todas <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if justificativas_pendentes %}
+                        {% for just in justificativas_pendentes %}
+                        <div class="border rounded p-3 mb-3 {% if forloop.counter > 10 %}d-none{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'tarefas:detalhe_tarefa' protocolo=just.tarefa.numero_protocolo_tarefa %}"
+                                           class="text-decoration-none" target="_blank">
+                                            {{ just.tarefa.numero_protocolo_tarefa }}
+                                            <i class="fas fa-external-link-alt small"></i>
+                                        </a>
+                                    </h6>
+                                    <span class="badge bg-primary">{{ just.tipo_justificativa.nome }}</span>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">
+                                        {{ just.data_submissao|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <p class="small mb-2">
+                                <strong>Servidor:</strong> {{ just.servidor.nome_completo }} ({{ just.servidor.siape }})
+                            </p>
+
+                            <p class="small mb-2 text-muted">
+                                {{ just.descricao|truncatewords:30 }}
+                            </p>
+
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'tarefas:avaliar_justificativa' justificativa_id=just.id %}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-gavel"></i> Avaliar
+                                </a>
+                                <a href="{% url 'tarefas:detalhe_justificativa' justificativa_id=just.id %}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i> Detalhes
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if justificativas_pendentes|length == 0 %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p>Nao ha justificativas pendentes no momento.</p>
+                        </div>
+                        {% endif %}
+
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p>Nao ha justificativas pendentes no momento.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita - Solicitacoes de Ajuda -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hands-helping"></i> Solicitacoes de Ajuda
+                    </h5>
+                    <a href="{% url 'tarefas:lista_solicitacoes_ajuda' %}" class="btn btn-sm btn-light">
+                        Ver Todas <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if solicitacoes_pendentes %}
+                        {% for sol in solicitacoes_pendentes %}
+                        <div class="border rounded p-3 mb-3
+                                    {% if sol.status == 'PENDENTE' %}border-danger{% else %}border-info{% endif %}
+                                    {% if forloop.counter > 10 %}d-none{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'tarefas:detalhe_tarefa' protocolo=sol.tarefa.numero_protocolo_tarefa %}"
+                                           class="text-decoration-none" target="_blank">
+                                            {{ sol.tarefa.numero_protocolo_tarefa }}
+                                            <i class="fas fa-external-link-alt small"></i>
+                                        </a>
+                                    </h6>
+                                    {% if sol.status == 'PENDENTE' %}
+                                        <span class="badge bg-danger">Pendente</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Em Atendimento</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">
+                                        {{ sol.data_solicitacao|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <p class="small mb-2">
+                                <strong>Solicitante:</strong> {{ sol.servidor_solicitante.nome_completo }}
+                            </p>
+
+                            {% if sol.atendido_por %}
+                            <p class="small mb-2">
+                                <strong>Atendido por:</strong> {{ sol.atendido_por.nome_completo }}
+                            </p>
+                            {% endif %}
+
+                            <p class="small mb-2 text-muted">
+                                {{ sol.descricao|truncatewords:25 }}
+                            </p>
+
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'tarefas:atender_solicitacao' solicitacao_id=sol.id %}"
+                                   class="btn btn-sm btn-info">
+                                    {% if sol.status == 'PENDENTE' %}
+                                        <i class="fas fa-play"></i> Iniciar Atendimento
+                                    {% else %}
+                                        <i class="fas fa-check"></i> Concluir
+                                    {% endif %}
+                                </a>
+                                <a href="{% url 'tarefas:detalhe_solicitacao' solicitacao_id=sol.id %}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i> Detalhes
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3"></i>
+                            <p>Nao ha solicitacoes de ajuda no momento.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafico de Distribuicao -->
+    {% if tipos_distribuicao %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Distribuicao por Tipo de Justificativa (Pendentes)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tipo de Justificativa</th>
+                                    <th class="text-center">Quantidade</th>
+                                    <th>Proporcao</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tipo in tipos_distribuicao %}
+                                <tr>
+                                    <td>{{ tipo.tipo_justificativa__nome }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ tipo.total }}</span>
+                                    </td>
+                                    <td>
+                                        {% widthratio tipo.total stats.justificativas_pendentes 100 as percentual %}
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar bg-primary"
+                                                 role="progressbar"
+                                                 style="width: {{ percentual }}%"
+                                                 aria-valuenow="{{ percentual }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                {{ percentual }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
