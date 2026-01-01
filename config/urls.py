@@ -2,8 +2,21 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
+from django.http import JsonResponse
+
+# View de teste simples
+def test_view(request):
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Django está funcionando!',
+        'path': request.path,
+        'method': request.method
+    })
 
 urlpatterns = [
+    # View de teste (temporário para debug)
+    path('test/', test_view, name='test'),
+
     path('admin/', admin.site.urls),
 
     # URLs do app core (login, logout, dashboard)
