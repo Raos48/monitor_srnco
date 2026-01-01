@@ -23,7 +23,11 @@
       "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py migrate tarefas)",
       "Bash(\".venv_copia\\Scripts\\python.exe\" manage.py makemigrations tarefas --name adicionar_historico_acao_lote)",
       "Bash(powershell -Command \"Get-ChildItem ''d:\\\\PYTHON\\\\Sistema WEB COREC monitor de Fila\\\\Backend\\\\monitor_srnco - Copia\\\\templates'' -Recurse -Filter ''*.html'' | ForEach-Object { \\(Get-Content $_FullName -Raw -Encoding UTF8\\) -replace ''Monitor SRNCO'', ''Sistema SIGA'' | Set-Content $_FullName -Encoding UTF8 -NoNewline }\")",
-      "Bash(del \"d:\\\\PYTHON\\\\Sistema WEB COREC monitor de Fila\\\\Backend\\\\monitor_srnco - Copia\\\\substituir_nomes.py\")"
+      "Bash(del \"d:\\\\PYTHON\\\\Sistema WEB COREC monitor de Fila\\\\Backend\\\\monitor_srnco - Copia\\\\substituir_nomes.py\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
