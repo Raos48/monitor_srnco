@@ -34,4 +34,9 @@ media/
 
 # Arquivos de documentação e texto
 *.txt
+!requirements.txt
 *.md
+!README.md
+!DEPLOY.md
+!EASYPANEL_DEPLOY.md
+!CHECKLIST_DEPLOY.md
