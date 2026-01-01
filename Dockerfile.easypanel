@@ -8,11 +8,13 @@ FROM python:3.11-slim
 # Variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    DJANGO_SETTINGS_MODULE=config.settings
 
 # Instala dependências do sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
     default-libmysqlclient-dev \
     pkg-config \
     curl \
@@ -28,14 +30,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia o código da aplicação
 COPY . .
 
-# Coleta arquivos estáticos
-RUN python manage.py collectstatic --noinput --clear || true
+# Cria diretórios necessários
+RUN mkdir -p /app/staticfiles /app/media
 
 # Expõe a porta
 EXPOSE 8000
 
-# Comando de inicialização
+# Comando de inicialização com migrações e collectstatic
 CMD python manage.py migrate --noinput && \
+    python manage.py collectstatic --noinput --clear && \
     gunicorn config.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 4 \

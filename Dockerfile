@@ -4,7 +4,7 @@
 # ==========================================
 
 # Estágio 1: Builder - Instala dependências
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Define variáveis de ambiente para Python
 ENV PYTHONUNBUFFERED=1 \
@@ -23,9 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Cria diretório de trabalho
 WORKDIR /app
 
-# Copia e instala dependências Python
+# Copia e instala dependências Python globalmente
 COPY requirements.txt .
-RUN pip install --user --no-warn-script-location -r requirements.txt
+RUN pip install --no-warn-script-location -r requirements.txt
 
 # ==========================================
 # Estágio 2: Runtime - Imagem final otimizada
@@ -34,7 +34,6 @@ FROM python:3.11-slim
 # Define variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH=/root/.local/bin:$PATH \
     DJANGO_SETTINGS_MODULE=config.settings
 
 # Instala apenas as dependências de runtime necessárias
@@ -44,6 +43,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+# Copia dependências Python instaladas do builder (site-packages globais)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 # Cria usuário não-root para segurança
 RUN useradd -m -u 1000 django && \
     mkdir -p /app /app/staticfiles /app/media && \
@@ -52,17 +55,14 @@ RUN useradd -m -u 1000 django && \
 # Define diretório de trabalho
 WORKDIR /app
 
-# Copia dependências Python instaladas do builder
-COPY --from=builder --chown=django:django /root/.local /root/.local
-
 # Copia o código da aplicação
 COPY --chown=django:django . .
 
 # Muda para usuário não-root
 USER django
 
-# Coleta arquivos estáticos
-RUN python manage.py collectstatic --noinput --clear
+# Coleta arquivos estáticos (pode falhar sem DB, ignoramos erro)
+RUN python manage.py collectstatic --noinput --clear || true
 
 # Expõe a porta 8000
 EXPOSE 8000
