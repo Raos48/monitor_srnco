@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise logo após SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -152,6 +153,16 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
+# WhiteNoise - Configuração para servir arquivos estáticos em produção
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -215,15 +226,20 @@ DEBUG_TOOLBAR_CONFIG = {
 
 # Security Settings - Ativado apenas em produção (DEBUG=False)
 if not DEBUG:
-    # HTTPS
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # HTTPS - Somente ativa se HTTPS estiver configurado
+    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
 
-    # HSTS (HTTP Strict Transport Security)
-    SECURE_HSTS_SECONDS = 31536000  # 1 ano
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    # Cookies seguros - somente se SSL estiver habilitado
+    # Defina ENABLE_SECURE_COOKIES=True no ambiente quando HTTPS estiver configurado
+    ENABLE_SECURE_COOKIES = os.environ.get('ENABLE_SECURE_COOKIES', 'False') == 'True'
+    SESSION_COOKIE_SECURE = ENABLE_SECURE_COOKIES
+    CSRF_COOKIE_SECURE = ENABLE_SECURE_COOKIES
+
+    # HSTS (HTTP Strict Transport Security) - somente se SSL estiver habilitado
+    if ENABLE_SECURE_COOKIES:
+        SECURE_HSTS_SECONDS = 31536000  # 1 ano
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
 
     # Security Headers
     SECURE_BROWSER_XSS_FILTER = True
