@@ -130,25 +130,31 @@ def redirect_after_login(request):
     - Coordenador → /tarefas/dashboard/coordenador/
     - Equipe Volante → /tarefas/equipe-volante/painel/
     - Servidor → /servidores/{siape}/
-    - Outros → /
+    - Outros → /admin/ (fallback seguro)
     """
     user = request.user
 
-    # Verificar se é coordenador
-    if user.groups.filter(name='Coordenador').exists():
-        return redirect('tarefas:dashboard_coordenador')
+    try:
+        # Verificar se é coordenador
+        if user.groups.filter(name='Coordenador').exists():
+            return redirect('tarefas:dashboard_coordenador')
 
-    # Verificar se é da Equipe Volante
-    elif user.groups.filter(name='Equipe Volante').exists():
-        return redirect('tarefas:painel_equipe_volante')
+        # Verificar se é da Equipe Volante
+        elif user.groups.filter(name='Equipe Volante').exists():
+            return redirect('tarefas:painel_equipe_volante')
 
-    # Verificar se é servidor
-    elif user.groups.filter(name='Servidor').exists():
-        return redirect('tarefas:detalhe_servidor', siape=user.siape)
+        # Verificar se é servidor
+        elif user.groups.filter(name='Servidor').exists():
+            return redirect('tarefas:detalhe_servidor', siape=user.siape)
 
-    # Outros usuários
-    else:
-        return redirect('/')
+        # Outros usuários → redireciona para admin (fallback seguro)
+        else:
+            return redirect('/admin/')
+
+    except Exception as e:
+        # Se houver erro (ex: tabelas não existem), redireciona para admin
+        # Isso permite que o sistema funcione mesmo sem migrations rodadas
+        return redirect('/admin/')
 
 
 # ============================================
