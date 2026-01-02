@@ -31,7 +31,7 @@ local_settings.py
 
 # Arquivos estáticos (serão coletados no build)
 /staticfiles/
-/static/
+# /static/ - COMENTADO: precisamos dos arquivos fonte CSS/JS do projeto!
 
 # Arquivos de mídia
 /media/
